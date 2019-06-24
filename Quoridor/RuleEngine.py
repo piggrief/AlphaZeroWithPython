@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import numpy as np
 import copy
-
+from LookupRoad import LookupRoadAlgorithm as LR
 
 class Point:
     def __init__(self, X_Set=0, Y_Set=0):
@@ -127,6 +127,50 @@ class QuoridorRuleEngine:
             ChessBoard_ToCheck.Player1Location = Point(row, col)
         else:
             ChessBoard_ToCheck.Player2Location = Point(row, col)
+
+    @staticmethod
+    def CheckBoard(ChessBoard_ToCheck, WhichBoard, Player, Location_row, Location_col):
+        """
+        检测该挡板是否能被放下
+        :param ChessBoard_ToCheck:待检测棋盘
+        :param WhichBoard:放置哪种挡板
+        :param Player:检测哪个玩家会被堵死
+        :param Location_row:玩家的位置行
+        :param Location_col:玩家的位置列
+        :return:错误提示符，能被放下就会返回“OK”
+        """
+        ThisChessBoard = ChessBoard_ToCheck
+        if WhichBoard == 2 or WhichBoard == 3:
+            return "OK"
+        if Player == 0 and ChessBoard_ToCheck.NumPlayer1Board <= 0:
+            return "Player1 No Board"
+        elif Player == 1 and ChessBoard_ToCheck.NumPlayer2Board <= 0:
+            return "Player2 No Board"
+
+        ChessBoardBuff = ChessBoard.SaveChessBoard(ThisChessBoard)
+
+        Hint = QuoridorRuleEngine.Action(ThisChessBoard, Location_row, Location_col, WhichBoard)
+
+        if Hint == "OK":
+            AstarE = LR()
+            disbuff1 = AstarE.AstarRestart(ThisChessBoard, 0
+                                           , ThisChessBoard.Player1Location.X, ThisChessBoard.Player1Location.Y)
+            disbuff2 = AstarE.AstarRestart(ThisChessBoard, 1
+                                           , ThisChessBoard.Player2Location.X, ThisChessBoard.Player2Location.Y)
+
+            if disbuff1 >= 999 and disbuff2 < 999:
+                Hint = "Player1 No Road!"
+            elif disbuff1 < 999 and disbuff2 >= 999:
+                Hint = "Player2 No Road!"
+            elif disbuff1 >= 999 and disbuff2 >= 999:
+                Hint = "Player1&Player2 No Road!"
+
+        if Hint != "OK":
+            ThisChessBoard = ChessBoard.ResumeChessBoard(ChessBoardBuff)
+            return Hint
+
+        ThisChessBoard = ChessBoard.ResumeChessBoard(ChessBoardBuff)
+        return "OK"
 
     @staticmethod
     def CheckMove_Change(ChessBoard_ToCheck, row, col, NowAction):
