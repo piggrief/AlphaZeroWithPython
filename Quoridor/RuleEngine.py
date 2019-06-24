@@ -39,13 +39,14 @@ class ChessBoard:
         """
         初始化棋盘状态
         """
-        self.ChessBoardAll = np.empty([7, 7], dtype=Grid)
-        for x in np.nditer(self.ChessBoardAll, order='C'):
-            x = Grid(self)
+        self.ChessBoardAll = np.zeros([7, 7], dtype=Grid)
+        for i in range(0, self.ChessBoardAll.shape[0]):
+            for j in range(0, self.ChessBoardAll.shape[1]):
+                self.ChessBoardAll[i, j] = Grid(self)
         self.ChessBoardAll[0, 3].GridStatus = 1
-        self.ChessBoardAll[6, 3].GridStatus = 1
-        self.Player1Location = Point(self, -1, -1)
-        self.Player2Location = Point(self, -1, -1)
+        self.ChessBoardAll[6, 3].GridStatus = 2
+        self.Player1Location = Point(-1, -1)
+        self.Player2Location = Point(-1, -1)
         self.NumPlayer1Board = 16
         self.NumPlayer2Board = 16
         return
@@ -56,6 +57,30 @@ class ChessBoard:
         绘制棋盘
         :return:
         """
+        for i in range(0, ChessBoardNow.ChessBoardAll.shape[0] * 2):
+            rowindex = i // 2
+            for j in range(0, ChessBoardNow.ChessBoardAll.shape[1] * 2):
+                colindex = j // 2
+                if i % 2 == 0:  # 横档板显示行
+                    if ChessBoardNow.ChessBoardAll[rowindex, colindex].IfUpBoard:
+                        print("\033[31m─\033[0m", end='')
+                    else:
+                        print("─", end='')
+                else:
+                    if j % 2 == 0:  # 竖挡板显示列
+                        if ChessBoardNow.ChessBoardAll[rowindex, colindex].IfLeftBoard:
+                            print("\033[31m|\033[31m", end='')
+                        else:
+                            print("|", end='')
+                    else:
+                        if ChessBoardNow.ChessBoardAll[rowindex, colindex].GridStatus == 1:  # 白子
+                            print("⚪", end='')
+                        elif ChessBoardNow.ChessBoardAll[rowindex, colindex].GridStatus == 2:  # 黑子
+                            print("●", end='')
+                        else:
+                            print(" ", end='')
+            print()
+        print()
 
     @staticmethod
     def SaveChessBoard(ChessBoardNow):
