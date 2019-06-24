@@ -2,27 +2,30 @@
 # -*- coding:utf-8 -*-
 from RuleEngine import Point
 
+
 class LookupRoadAlgorithm:
     class AstarList:
         def __init__(self, HH, GG, FF, row, col, Father_set=1):
-            H = HH
-            G = GG
-            F = FF
-            Grid_row = row
-            Grid_col = col
-            Father = Father_set
+            self.H = HH
+            self.G = GG
+            self.F = FF
+            self.Grid_row = row
+            self.Grid_col = col
+            self.Father = Father_set
 
     Min_DistanceLength = 0
     Astar_Stop = False
     Player1MinRoad = []
     Player2MinRoad = []
 
-    def AstarRestart(self, Location_row, Location_col):
+    def AstarRestart(self, ToAstarSearch, Player, Location_row, Location_col):
         self.Min_DistanceLength = 999
         self.Astar_Stop = False
-        InitGrid = self.AstarList(self, 6, 0, 6, Location_row, Location_col)
+        InitGrid = self.AstarList(6, 0, 6, Location_row, Location_col)
         InitAList = []
         InitAList.append(InitGrid)
+        distance = self.LookupRoad_Astar(ToAstarSearch, Player, InitGrid, 1, [], InitAList)
+        return self.Min_DistanceLength
 
     def LookupRoad_Astar(self, ThisChessBoard, Player, NowGrid, num_renew, OpenList, CloseList):
         if self.Astar_Stop:
@@ -107,7 +110,7 @@ class LookupRoadAlgorithm:
         minindex = 0
 
         i = 0
-        while(i < len(P_List_Enable) and i >= 0):
+        while 0 <= i < len(P_List_Enable):
             Hbuff = abs(P_List_Enable[i].X - Row_Destination)
             P_Dis[i] = Hbuff
             Gbuff = num_renew
@@ -146,7 +149,7 @@ class LookupRoadAlgorithm:
             i += 1
 
         MinFGrid = self.AstarList(-1, -1, -1, -1, -1)
-        for i in range(0, OpenList):
+        for i in range(0, len(OpenList)):
             Fbuff = OpenList[i].F
             if Fbuff < minF:
                 minF = Fbuff

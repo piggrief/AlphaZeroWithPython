@@ -42,11 +42,11 @@ class ChessBoard:
         self.ChessBoardAll = np.zeros([7, 7], dtype=Grid)
         for i in range(0, self.ChessBoardAll.shape[0]):
             for j in range(0, self.ChessBoardAll.shape[1]):
-                self.ChessBoardAll[i, j] = Grid(self)
+                self.ChessBoardAll[i, j] = Grid()
         self.ChessBoardAll[0, 3].GridStatus = 1
         self.ChessBoardAll[6, 3].GridStatus = 2
-        self.Player1Location = Point(-1, -1)
-        self.Player2Location = Point(-1, -1)
+        self.Player1Location = Point(0, 3)
+        self.Player2Location = Point(6, 3)
         self.NumPlayer1Board = 16
         self.NumPlayer2Board = 16
         return
@@ -65,11 +65,11 @@ class ChessBoard:
                     if ChessBoardNow.ChessBoardAll[rowindex, colindex].IfUpBoard:
                         print("\033[31m─\033[0m", end='')
                     else:
-                        print("─", end='')
+                        print("─", end='')  # ─
                 else:
                     if j % 2 == 0:  # 竖挡板显示列
                         if ChessBoardNow.ChessBoardAll[rowindex, colindex].IfLeftBoard:
-                            print("\033[31m|\033[31m", end='')
+                            print("\033[31m|\033[0m", end='')
                         else:
                             print("|", end='')
                     else:
@@ -106,6 +106,8 @@ class ChessBoard:
 class QuoridorRuleEngine:
     """
     Quoridor游戏规则引擎类
+    关于玩家的规定：0为P1白子，1为P2黑子
+    关于动作的规定：0为放置竖挡板，1为放置横挡板，2为移动玩家1，3为移动玩家2，4为等待
     """
     def __init__(self):
         return
@@ -118,4 +120,231 @@ class QuoridorRuleEngine:
             return "P2 Success"
         else:
             return "No Success"
+
+    @staticmethod
+    def ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction):
+        if NowAction == 2:
+            ChessBoard_ToCheck.Player1Location = Point(row, col)
+        else:
+            ChessBoard_ToCheck.Player2Location = Point(row, col)
+
+    @staticmethod
+    def CheckMove_Change(ChessBoard_ToCheck, row, col, NowAction):
+        """
+        检测能否执行移动，Change代表检测成功后会执行这次移动，改变棋盘ChessBoard_ToCheck
+        :param ChessBoard_ToCheck:待检测的棋盘
+        :param row:移动的行
+        :param col:移动的列
+        :param NowAction:移动类型
+        :return:移动状态提示，“OK”表示移动执行完成且成功
+        """
+        if ChessBoard_ToCheck.ChessBoardAll[row, col].GridStatus != 0:
+            return "This Not Empty"
+        ActionPlayer = 0  # 1 为玩家1，2 为玩家2
+        AnotherPlayer = 0
+        if NowAction != 2 and NowAction != 3:
+            return "Error"
+
+        if NowAction == 2:  # 移动玩家1
+            ActionPlayer = 1
+            AnotherPlayer = 2
+        else:
+            ActionPlayer = 2
+            AnotherPlayer = 1
+
+        ChessBoardAll = ChessBoard_ToCheck.ChessBoardAll
+        # region 检测是否可走
+        # region 前扫一格
+        if row >= 1 and (not ChessBoardAll[row, col].IfUpBoard):  # 上扫
+            if ChessBoardAll[row - 1, col].GridStatus == ActionPlayer:
+                ChessBoardAll[row - 1, col].GridStatus = 0
+                ChessBoardAll[row, col].GridStatus = ActionPlayer
+                if NowAction == 2:
+                    ChessBoard_ToCheck.Player1Location = Point(row, col)
+                else:
+                    ChessBoard_ToCheck.Player2Location = Point(row, col)
+                return "OK"
+            elif ChessBoardAll[row - 1, col].GridStatus == AnotherPlayer:
+                if col >= 1 and ChessBoardAll[row - 1, col - 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row - 1, col].IfLeftBoard):  # 左扫
+                    ChessBoardAll[row - 1, col - 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    if NowAction == 2:
+                        ChessBoard_ToCheck.Player1Location = Point(row, col)
+                    else:
+                        ChessBoard_ToCheck.Player2Location = Point(row, col)
+                    return "OK"
+                if col <= 5 and ChessBoardAll[row - 1, col + 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row - 1, col + 1].IfLeftBoard):  # 右扫
+                    ChessBoardAll[row - 1, col + 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    if NowAction == 2:
+                        ChessBoard_ToCheck.Player1Location = Point(row, col)
+                    else:
+                        ChessBoard_ToCheck.Player2Location = Point(row, col)
+                    return "OK"
+                if row >= 2 and ChessBoardAll[row - 2, col].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row - 1, col].IfUpBoard):  # 上扫
+                    ChessBoardAll[row - 2, col].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    if NowAction == 2:
+                        ChessBoard_ToCheck.Player1Location = Point(row, col)
+                    else:
+                        ChessBoard_ToCheck.Player2Location = Point(row, col)
+                    return "OK"
+        # endregion
+        if row >= 1 and (not ChessBoardAll[row, col].IfUpBoard):  # 上扫
+            if ChessBoardAll[row - 1, col].GridStatus == ActionPlayer:
+                ChessBoardAll[row - 1, col].GridStatus = 0
+                ChessBoardAll[row, col].GridStatus = ActionPlayer
+                QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                return "OK"
+
+            elif ChessBoardAll[row - 1, col].GridStatus == AnotherPlayer:
+                if col >= 1 and ChessBoardAll[row - 1, col - 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row - 1, col].IfLeftBoard):  # 左扫
+                    ChessBoardAll[row - 1, col - 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if col <= 5 and ChessBoardAll[row - 1, col + 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row - 1, col + 1].IfLeftBoard):  # 右扫
+                    ChessBoardAll[row - 1, col + 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if row >= 2 and ChessBoardAll[row - 2, col].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row - 1, col].IfUpBoard):  # 上扫
+                    ChessBoardAll[row - 2, col].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+        if row <= 5 and (not ChessBoardAll[row + 1, col].IfUpBoard):  # 下扫
+            if ChessBoardAll[row + 1, col].GridStatus == ActionPlayer:
+                ChessBoardAll[row + 1, col].GridStatus = 0
+                ChessBoardAll[row, col].GridStatus = ActionPlayer
+                QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                return "OK"
+
+            elif ChessBoardAll[row + 1, col].GridStatus == AnotherPlayer:
+                if col >= 1 and ChessBoardAll[row + 1, col - 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row + 1, col].IfLeftBoard):  # 左扫
+                    ChessBoardAll[row + 1, col - 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if col <= 5 and ChessBoardAll[row + 1, col + 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row + 1, col + 1].IfLeftBoard):  # 右扫
+                    ChessBoardAll[row + 1, col + 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if row <= 4 and ChessBoardAll[row + 2, col].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row + 2, col].IfUpBoard):  # 下扫
+                    ChessBoardAll[row + 2, col].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+        if col >= 1 and (not ChessBoardAll[row, col].IfLeftBoard):  # 左扫
+            if ChessBoardAll[row, col - 1].GridStatus == ActionPlayer:
+                ChessBoardAll[row, col - 1].GridStatus = 0
+                ChessBoardAll[row, col].GridStatus = ActionPlayer
+                QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                return "OK"
+            elif ChessBoardAll[row, col - 1].GridStatus == AnotherPlayer:
+                if col >= 2 and ChessBoardAll[row, col - 2].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row, col - 1].IfLeftBoard):  # 左扫
+                    ChessBoardAll[row, col - 2].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if row <= 5 and ChessBoardAll[row + 1, col - 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row + 1, col - 1].IfUpBoard):  # 下扫
+                    ChessBoardAll[row + 1, col - 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if row >= 1 and ChessBoardAll[row - 1, col - 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row, col - 1].IfUpBoard):  # 上扫
+                    ChessBoardAll[row - 1, col - 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+        if col <= 5 and (not ChessBoardAll[row, col + 1].IfLeftBoard):  # 右扫
+            if ChessBoardAll[row, col + 1].GridStatus == ActionPlayer:
+                ChessBoardAll[row, col + 1].GridStatus = 0
+                ChessBoardAll[row, col].GridStatus = ActionPlayer
+                QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                return "OK"
+
+            elif ChessBoardAll[row, col + 1].GridStatus == AnotherPlayer:
+                if col <= 4 and ChessBoardAll[row, col + 2].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row, col + 2].IfLeftBoard):  # 右扫
+                    ChessBoardAll[row, col + 2].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if row <= 5 and ChessBoardAll[row + 1, col + 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row + 1, col + 1].IfUpBoard):  # 下扫
+                    ChessBoardAll[row + 1, col + 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+
+                if row >= 1 and ChessBoardAll[row - 1, col + 1].GridStatus == ActionPlayer and \
+                        (not ChessBoardAll[row, col + 1].IfUpBoard):  # 上扫
+                    ChessBoardAll[row - 1, col + 1].GridStatus = 0
+                    ChessBoardAll[row, col].GridStatus = ActionPlayer
+                    QuoridorRuleEngine.ChangeP1P2Location(ChessBoard_ToCheck, row, col, NowAction)
+                    return "OK"
+        # endregion
+        return "MoveError"
+
+    @staticmethod
+    def Action(ChessBoard, row, col, NowAction):
+        """
+        行动操作，主要是用来改变棋盘状态数组
+        :param ChessBoard:待行动的棋盘状态
+        :param row:行动的行
+        :param col:行动的列
+        :param NowAction:行动操作
+        :return:行动结果，可不可行,"OK"代表行动成功
+        """
+        ChessBoard_ToAction = ChessBoard.ChessBoardAll
+        if NowAction == 0:  # 放置竖挡板
+            if col <= 0 or col >= 7 or row >= 6:
+                return "VerticalBoardPlaceError!"
+            if ChessBoard_ToAction[row, col].IfLeftBoard or ChessBoard_ToAction[row + 1, col].IfLeftBoard:
+                return "This has a VerticalBoard!"
+            if ChessBoard_ToAction[row + 1, col].IfUpBoard and ChessBoard_ToAction[row + 1, col - 1].IfUpBoard:
+                return "十字交叉违规！"
+            ChessBoard_ToAction[row, col].IfLeftBoard = True
+            ChessBoard_ToAction[row + 1, col].IfLeftBoard = True
+            return "OK"
+        elif NowAction == 1:  # 放置横挡板
+            if row <= 0 or row >= 7 or col >= 6:
+                return "HorizontalBoardPlaceError!"
+            if ChessBoard_ToAction[row, col].IfUpBoard or ChessBoard_ToAction[row, col + 1].IfUpBoard:
+                return "This has a HorizontalBoard!"
+            if ChessBoard_ToAction[row, col + 1].IfLeftBoard and ChessBoard_ToAction[row - 1, col + 1].IfLeftBoard:
+                return "十字交叉违规！"
+            ChessBoard_ToAction[row, col].IfUpBoard = True
+            ChessBoard_ToAction[row, col + 1].IfUpBoard = True
+            return "OK"
+        elif NowAction == 2:  # 移动玩家1
+            return QuoridorRuleEngine.CheckMove_Change(ChessBoard, row, col, 2)
+        elif NowAction == 3:  # 移动玩家2
+            return QuoridorRuleEngine.CheckMove_Change(ChessBoard, row, col, 3)
+        else:
+            return "Error"
 
