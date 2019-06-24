@@ -50,31 +50,32 @@ class ChessBoard:
         self.NumPlayer2Board = 16
         return
 
-    def DrawNowChessBoard(self):
+    @staticmethod
+    def DrawNowChessBoard(ChessBoardNow):
         """
         绘制棋盘
         :return:
         """
 
+    @staticmethod
+    def SaveChessBoard(ChessBoardNow):
+        """
+        保存棋盘至返回值
+        :param ChessBoardNow: 待保存的棋盘
+        :return: 保存后的棋盘
+        """
+        ChessBoardSave = copy.deepcopy(ChessBoardNow)
+        return ChessBoardSave
 
-def SaveChessBoard(ChessBoardNow):
-    """
-    保存棋盘至返回值
-    :param ChessBoardNow: 待保存的棋盘
-    :return: 保存后的棋盘
-    """
-    ChessBoardSave = copy.deepcopy(ChessBoardNow)
-    return ChessBoardSave
-
-
-def ResumeChessBoard(ChessBoardSave):
-    """
-    恢复棋盘至返回值
-    :param ChessBoardSave: 保存的棋盘
-    :return: 待恢复的棋盘
-    """
-    ChessBoard_Resumed = copy.deepcopy(ChessBoardSave)
-    return ChessBoard_Resumed
+    @staticmethod
+    def ResumeChessBoard(ChessBoardSave):
+        """
+        恢复棋盘至返回值
+        :param ChessBoardSave: 保存的棋盘
+        :return: 待恢复的棋盘
+        """
+        ChessBoard_Resumed = copy.deepcopy(ChessBoardSave)
+        return ChessBoard_Resumed
 
 
 class QuoridorRuleEngine:
@@ -83,3 +84,13 @@ class QuoridorRuleEngine:
     """
     def __init__(self):
         return
+
+    @staticmethod
+    def CheckGameResult(ChessBoardToCheck):
+        if ChessBoardToCheck.Player1Location.X == 6:
+            return "P1 Success"
+        elif ChessBoardToCheck.Player2Location.X == 0:
+            return "P2 Success"
+        else:
+            return "No Success"
+
