@@ -96,4 +96,5 @@ def main():
 
         NewUI.PrintChessBoard(CB)
 
+
 main()

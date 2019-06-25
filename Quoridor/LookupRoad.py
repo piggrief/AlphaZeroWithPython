@@ -1,6 +1,11 @@
 #!/usr/bin/env python 
 # -*- coding:utf-8 -*-
-from RuleEngine import Point
+
+
+class Point:
+    def __init__(self, X_Set=0, Y_Set=0):
+        self.X = X_Set
+        self.Y = Y_Set
 
 
 class LookupRoadAlgorithm:

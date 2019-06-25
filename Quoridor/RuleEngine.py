@@ -93,14 +93,18 @@ class ChessBoard:
         return ChessBoardSave
 
     @staticmethod
-    def ResumeChessBoard(ChessBoardSave):
-        """
-        恢复棋盘至返回值
-        :param ChessBoardSave: 保存的棋盘
-        :return: 待恢复的棋盘
-        """
-        ChessBoard_Resumed = copy.deepcopy(ChessBoardSave)
-        return ChessBoard_Resumed
+    def ResumeChessBoard(ChessBoard_Resumed, ChessBoardSave):
+        for i in range(0, 7):
+            for j in range(0, 7):
+                ChessBoard_Resumed.ChessBoardAll[i, j].IfLeftBoard = ChessBoardSave.ChessBoardAll[i, j].IfLeftBoard
+                ChessBoard_Resumed.ChessBoardAll[i, j].IfUpBoard = ChessBoardSave.ChessBoardAll[i, j].IfUpBoard
+                ChessBoard_Resumed.ChessBoardAll[i, j].GridStatus = ChessBoardSave.ChessBoardAll[i, j].GridStatus
+        ChessBoard_Resumed.Player1Location.X = ChessBoardSave.Player1Location.X
+        ChessBoard_Resumed.Player1Location.Y = ChessBoardSave.Player1Location.Y
+        ChessBoard_Resumed.Player2Location.X = ChessBoardSave.Player2Location.X
+        ChessBoard_Resumed.Player2Location.Y = ChessBoardSave.Player2Location.Y
+        ChessBoard_Resumed.NumPlayer1Board = ChessBoardSave.NumPlayer1Board
+        ChessBoard_Resumed.NumPlayer2Board = ChessBoardSave.NumPlayer2Board
 
 
 class QuoridorRuleEngine:
@@ -166,10 +170,10 @@ class QuoridorRuleEngine:
                 Hint = "Player1&Player2 No Road!"
 
         if Hint != "OK":
-            ThisChessBoard = ChessBoard.ResumeChessBoard(ChessBoardBuff)
+            ChessBoard.ResumeChessBoard(ChessBoard_ToCheck, ChessBoardBuff)
             return Hint
 
-        ThisChessBoard = ChessBoard.ResumeChessBoard(ChessBoardBuff)
+        ChessBoard.ResumeChessBoard(ChessBoard_ToCheck, ChessBoardBuff)
         return "OK"
 
     @staticmethod

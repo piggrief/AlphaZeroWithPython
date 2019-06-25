@@ -3,9 +3,10 @@
 import RuleEngine as RE
 import LookupRoad as LR
 
+
 class QuoridorGame:
     class QuoridorAction:
-        def __init__(self, Action_Set = 4, Row_Set = -1, Col_set = -1):
+        def __init__(self, Action_Set=4, Row_Set=-1, Col_set=-1):
             self.Action = Action_Set
             self.ActionLocation = RE.Point(Row_Set, Col_set)
 
@@ -47,7 +48,27 @@ def main():
             print("输入错误！请重新输入：")
             continue
 
-        HintStr = RE.QuoridorRuleEngine.Action(QG.NowCB, NowQA.ActionLocation.X\
+        # region 检测挡板是否违规
+        P1HintStr = RE.QuoridorRuleEngine.CheckBoard(QG.NowCB, NowQA.Action, 0
+                                                     , NowQA.ActionLocation.X, NowQA.ActionLocation.Y)
+        P2HintStr = RE.QuoridorRuleEngine.CheckBoard(QG.NowCB, NowQA.Action, 1
+                                                     , NowQA.ActionLocation.X, NowQA.ActionLocation.Y)
+        if P1HintStr == "Player1 No Board":
+            if NowQA.Action == 0 or NowQA.Action == 1:
+                print(P1HintStr)
+            continue
+        if (P1HintStr != "Player1 No Board" and P2HintStr != "Player2 No Board")\
+                and (P1HintStr != "OK" or P2HintStr != "OK"):
+            if P1HintStr != "OK" and P2HintStr == "OK":
+                print(P1HintStr)
+            elif P2HintStr != "OK" and P1HintStr == "OK":
+                print(P2HintStr)
+            elif P2HintStr != "OK" and P1HintStr != "OK":
+                print("P1:" + P1HintStr + " P2:" + P2HintStr)
+            continue
+
+        # endregion
+        HintStr = RE.QuoridorRuleEngine.Action(QG.NowCB, NowQA.ActionLocation.X
                                                , NowQA.ActionLocation.Y, NowQA.Action)
 
         ResultStr = RE.QuoridorRuleEngine.CheckGameResult(QG.NowCB)
