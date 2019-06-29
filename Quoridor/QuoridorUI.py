@@ -5,11 +5,6 @@ import LookupRoad as LR
 
 
 class QuoridorGame:
-    class QuoridorAction:
-        def __init__(self, Action_Set=4, Row_Set=-1, Col_set=-1):
-            self.Action = Action_Set
-            self.ActionLocation = RE.Point(Row_Set, Col_set)
-
     def __init__(self):
         self.NowPlayer = 0  # 白子
         self.NumBoard_P1 = 16  # 白子挡板数
@@ -38,7 +33,7 @@ def main():
         else:
             print("请黑子输入行动指令：")
 
-        NowQA = QuoridorGame.QuoridorAction()
+        NowQA = RE.QuoridorAction()
         ActionStr = input()
         try:
             CMDBuff = int(ActionStr)
