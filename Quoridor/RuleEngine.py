@@ -4,15 +4,18 @@ import numpy as np
 import copy
 from LookupRoad import LookupRoadAlgorithm as LR
 
+
 class Point:
     def __init__(self, X_Set=0, Y_Set=0):
         self.X = X_Set
         self.Y = Y_Set
 
+
 class QuoridorAction:
     def __init__(self, Action_Set=4, Row_Set=-1, Col_set=-1):
         self.Action = Action_Set
         self.ActionLocation = Point(Row_Set, Col_set)
+
 
 class Grid:
     """
@@ -187,7 +190,7 @@ class QuoridorRuleEngine:
         return "OK"
 
     @staticmethod
-    def CheckMove_Change(ChessBoard_ToCheck, row, col, NowAction, IsChange = True):
+    def CheckMove(ChessBoard_ToCheck, row, col, NowAction, IsChange=True):
         """
         检测能否执行移动，Change代表检测成功后会执行这次移动，改变棋盘ChessBoard_ToCheck
         :param ChessBoard_ToCheck:待检测的棋盘
@@ -421,9 +424,9 @@ class QuoridorRuleEngine:
             ChessBoard_ToAction[row, col + 1].IfUpBoard = True
             return "OK"
         elif NowAction == 2:  # 移动玩家1
-            return QuoridorRuleEngine.CheckMove_Change(ChessBoard, row, col, 2)
+            return QuoridorRuleEngine.CheckMove(ChessBoard, row, col, 2)
         elif NowAction == 3:  # 移动玩家2
-            return QuoridorRuleEngine.CheckMove_Change(ChessBoard, row, col, 3)
+            return QuoridorRuleEngine.CheckMove(ChessBoard, row, col, 3)
         else:
             return "Error"
 
@@ -452,37 +455,37 @@ class QuoridorRuleEngine:
         row = PlayerLocation.X
         col = PlayerLocation.Y
 
-        if row >= 2 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row - 2, col, MoveAction) == "OK":
+        if row >= 2 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 2, col, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row - 2, col))
 
-        if row >= 1 and col >= 1 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row - 1, col - 1,
-                                                                           MoveAction) == "OK":
+        if row >= 1 and col >= 1 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 1, col - 1,
+                                                                           MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row - 1, col - 1))
-        if row >= 1 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row - 1, col, MoveAction) == "OK":
+        if row >= 1 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 1, col, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row - 1, col))
         if row >= 1 and col <= 5 \
-                and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row - 1, col + 1, MoveAction) == "OK":
+                and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 1, col + 1, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row - 1, col + 1))
 
-        if col >= 2 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row, col - 2, MoveAction) == "OK":
+        if col >= 2 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col - 2, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row, col - 2))
-        if col >= 1 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row, col - 1, MoveAction) == "OK":
+        if col >= 1 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col - 1, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row, col - 1))
-        if col <= 5 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row, col + 1, MoveAction) == "OK":
+        if col <= 5 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col + 1, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row, col + 1))
-        if col <= 4 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row, col + 2, MoveAction) == "OK":
+        if col <= 4 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col + 2, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row, col + 2))
 
         if row <= 5 and col >= 1 \
-                and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row + 1, col - 1, MoveAction) == "OK":
+                and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 1, col - 1, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row + 1, col - 1))
-        if row <= 5 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row + 1, col, MoveAction) == "OK":
+        if row <= 5 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 1, col, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row + 1, col))
         if row <= 5 and col <= 5 \
-                and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row + 1, col + 1, MoveAction) == "OK":
+                and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 1, col + 1, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row + 1, col))
 
-        if row <= 4 and QuoridorRuleEngine.CheckMove_NoChange(ThisChessBoard, row + 2, col, MoveAction) == "OK":
+        if row <= 4 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 2, col, MoveAction, False) == "OK":
             ActionListBuff.append(QuoridorAction(MoveAction, row + 2, col))
 
         # endregion
@@ -506,7 +509,7 @@ class QuoridorRuleEngine:
         ActionList = []
         for QA in ActionListBuff:
             if QA.Action == 2 or QA.Action == 3:
-                if QuoridorRuleEngine.CheckMove_Change(ThisChessBoard\
+                if QuoridorRuleEngine.CheckMove(ThisChessBoard\
                         , QA.ActionLocation.X, QA.ActionLocation.Y, QA.Action, False) == "OK":
                     ActionList.append(QA)
             else:

@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 import RuleEngine as RE
 import LookupRoad as LR
+import MCTS as MT
 
 
 class QuoridorGame:
@@ -27,21 +28,27 @@ class QuoridorGame:
 def main():
     QG = QuoridorGame()
     Road = LR.LookupRoadAlgorithm()
+    RootNode = MT.MonteCartoTreeNode(-1, 0)
     while True:
         if QG.NowPlayer == 0:  # 白子
             print("请白子输入行动指令：")
         else:
             print("请黑子输入行动指令：")
 
-        NowQA = RE.QuoridorAction()
-        ActionStr = input()
-        try:
-            CMDBuff = int(ActionStr)
-            NowQA.Action = CMDBuff // 100
-            NowQA.ActionLocation = RE.Point((CMDBuff // 10) % 10, CMDBuff % 10)
-        except:
-            print("输入错误！请重新输入：")
-            continue
+        if QG.NowPlayer == 0:  # 玩家落子
+            NowQA = RE.QuoridorAction()
+            ActionStr = input()
+            try:
+                CMDBuff = int(ActionStr)
+                NowQA.Action = CMDBuff // 100
+                NowQA.ActionLocation = RE.Point((CMDBuff // 10) % 10, CMDBuff % 10)
+            except:
+                print("输入错误！请重新输入：")
+                continue
+        else:  # 电脑落子
+            MoveNode = RootNode.GetMCTSPolicy(QG.NowCB, QG.NowPlayer)
+            NowQA.Action = MoveNode.NodeAction
+            NowQA.ActionLocation = MoveNode.ActionLocation
 
         # region 检测挡板是否违规
         P1HintStr = RE.QuoridorRuleEngine.CheckBoard(QG.NowCB, NowQA.Action, 0
