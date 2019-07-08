@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 import RuleEngine as RE
 import numpy as np
-
 from LookupRoad import Point
 
 
@@ -180,6 +179,9 @@ class MonteCartoTreeNode:
                 BestMoveNode = NodeBuff
 
         return BestMoveNode
+
+    #  @staticmethod
+    #  def SelfPlay():
 
 
 
