@@ -19,6 +19,7 @@ class MonteCartoTreeNode:
     ActionLocation = Point(-1, -1)
 
     def __init__(self, FatherSet, Prior_P):
+        self.Children = []
         self.Father = FatherSet
         self._N = 1
         self._Q = 0
@@ -82,7 +83,8 @@ class MonteCartoTreeNode:
         if self.IsLeafNode():
             #  拓展该节点
             QABuff = []
-            QABuff = RE.QuoridorRuleEngine.CreateActionList(ThisChessBoard, self.NodePlayer)
+            QABuff = RE.QuoridorRuleEngine.CreateActionList(ThisChessBoard
+                                                            , MonteCartoTreeNode.ReversePlayer(self.NodePlayer))
             for QA in QABuff:
                 MTSonNode = MonteCartoTreeNode(self, 0)
                 MTSonNode.NodeAction = QA.Action
@@ -132,7 +134,11 @@ class MonteCartoTreeNode:
                                                    , NextExpandNode.NodeAction)
 
             if HintStr != "OK":
-                raise Exception("123")
+                print("错误提示：")
+                RE.ChessBoard.DrawNowChessBoard(SimluationChessBoard)
+                ErrorStr = NextExpandNode.NodeAction * 100 + NextExpandNode.ActionLocation.X * 10\
+                          + NextExpandNode.ActionLocation.Y
+                raise Exception(ErrorStr)
 
             if NextExpandNode.NodeAction == 0 or NextExpandNode.NodeAction == 1:
                 if NextExpandNode.NodePlayer == 0:
@@ -143,21 +149,19 @@ class MonteCartoTreeNode:
             # endregion
             # region 检测是否胜利
             SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
-            if SuccessHint != "No success":
+            if SuccessHint != "No Success":
                 leaf_value = -1
-                if JudgePlayer == 0 and SuccessHint == "Player1 Success!":
+                if JudgePlayer == 0 and SuccessHint == "P1 Success":
                     leaf_value = 1
-                if JudgePlayer == 1 and SuccessHint == "Player2 Success!":
+                if JudgePlayer == 1 and SuccessHint == "P2 Success":
                     leaf_value = 1
-
-            NextExpandNode.BackPropagation(leaf_value)
-            break
+                NextExpandNode.BackPropagation(leaf_value)
+                break
             # endregion
 
             # 拓展
             NextExpandNode.Expand(SimluationChessBoard)
 
-            break
         # region 恢复挡板数量
         InitChessBoard.NumPlayer1Board = Board1Save
         InitChessBoard.NumPlayer2Board = Board2Save
