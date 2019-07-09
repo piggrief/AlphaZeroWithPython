@@ -234,12 +234,26 @@ class QuoridorPolicyValueNet(PolicyValueNet):
         act_probs = np.exp(log_act_probs)
         return act_probs, value
 
-    def policy_value_fn(self, board):
-        legal_moves = board.get_available_moves()
-        current_state = np.ascontiguousarray(board.current_state().reshape(
+    def policy_value_fn(self, CurrentState
+                        , legal_ActionList=[231, 123, 23, 134]):  # 要求合法动作列表为231这种格式
+        legal_action = []
+        legal_location = []
+        for Action in legal_ActionList:
+            legal_action.append((Action // 100) % 10)
+            ActionRow = (Action // 10) % 10
+            ActionCol = Action % 10
+            legal_location.append(ActionRow * self.board_width + ActionCol)
+
+        current_state = np.ascontiguousarray(CurrentState.reshape(
                 -1, 4, self.board_width, self.board_width))
         act_probs, value = self.policy_value(current_state)
-        act_probs = zip(legal_moves, act_probs[0][legal_moves])
+
+        ResultAction = []
+        ResultProbs = []
+        for i in range(len(legal_ActionList)):
+            ResultProbs.append(act_probs[0][legal_action[i]][legal_location[i]])
+
+        act_probs = zip(legal_ActionList, ResultProbs)
         return act_probs, value
 
     def train_step(self, state_batch, mcts_probs, winner_batch, lr):

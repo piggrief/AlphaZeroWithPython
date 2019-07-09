@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import numpy as np
 import copy
-from LookupRoad import LookupRoadAlgorithm as LR
+from Quoridor.LookupRoad import LookupRoadAlgorithm as LR
 
 
 class Point:
@@ -393,7 +393,7 @@ class QuoridorRuleEngine:
         return "MoveError"
 
     @staticmethod
-    def Action(ChessBoard, row, col, NowAction, state_to_renew=np.zeros((4, 7*7))):
+    def Action(ChessBoard, row, col, NowAction, state_to_renew=np.zeros((4, 7, 7))):
         """
         行动操作，主要是用来改变棋盘状态数组
         :param ChessBoard:待行动的棋盘状态

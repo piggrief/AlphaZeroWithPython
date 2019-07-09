@@ -1,9 +1,9 @@
 #!/usr/bin/env python 
 # -*- coding:utf-8 -*-
-import RuleEngine as RE
+import Quoridor.RuleEngine as RE
 import numpy as np
-from LookupRoad import Point
-from RuleEngine import ChessBoard
+from Quoridor.LookupRoad import Point
+from Quoridor.RuleEngine import ChessBoard
 
 
 class MonteCartoTreeNode:
@@ -74,7 +74,7 @@ class MonteCartoTreeNode:
             self.BackPropagation(-Leaf_Value)
         self.UpdateInfo(Leaf_Value)
 
-    def Expand(self, ThisChessBoard):
+    def Expand(self, ThisChessBoard, Action_Priors):
         """
         根据当前局面拓展一个未拓展节点
         :param ThisChessBoard:当前局面棋盘
@@ -182,8 +182,8 @@ class MonteCartoTreeNode:
         return BestMoveNode
 
 
-class MCTS:
-    def __init__(self,policy_value_fn, c_puct=5, Num_Simulation=300):
+class MCTSearch:
+    def __init__(self, policy_value_fn, c_puct=5, Num_Simulation=300):
         self.NowChessBoard = ChessBoard()
         self.NowPlayer = 0  # 玩家1
         self.n_Simulation = Num_Simulation  # 模拟总次数
@@ -197,7 +197,7 @@ class MCTS:
         Board2Save = InitChessBoard.NumPlayer2Board
         # endregion
         state = []
-        StateBuff = np.zeros((4, 7*7))
+        StateBuff = np.zeros((4, 7, 7))
         StateBuff[2, 0, 3] = 1
         StateBuff[3, 6, 3] = 1
 
@@ -234,7 +234,8 @@ class MCTS:
             # endregion
             # region 获得P、V数组
             state.append(StateBuff)
-            action_probs, leaf_value = self._policy(state)
+            action_probs, leaf_value = self.PolicyNet(np.array(state))
+
             # endregion
             # region 检测是否胜利
             SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
