@@ -13,13 +13,17 @@ import Quoridor.RuleEngine as RE
 
 
 def main():
+    act_visits = [[2, 3], [4, 5], [6, 7]]
+    acts, visits = zip(*act_visits)
+
     PVN2 = QuoridorPolicyValueNet(7)
     T1 = Train(PVN2)
 
     MCT = MCTSearch(PVN2.policy_value_fn, Num_Simulation=2)
     Root = Quoridor.MCTS.MonteCartoTreeNode(-1, np.zeros((4, 7*7)))
     InitChessBoard = RE.ChessBoard()
-    MCT.OnceSimulation(Root, InitChessBoard, 1)
+    MCT.SelfPlay(0)
+    # MCT.OnceSimulation(Root, InitChessBoard, 1)
 
 
     T1.run()

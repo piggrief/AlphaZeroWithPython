@@ -524,13 +524,39 @@ class QuoridorRuleEngine:
 
         # region 校验生成的ActionList是否合法
         ActionList = []
+        MoveActionList = []
         for QA in ActionListBuff:
-            if QA.Action == 2 or QA.Action == 3:
-                if QuoridorRuleEngine.CheckMove(ThisChessBoard\
-                        , QA.ActionLocation.X, QA.ActionLocation.Y, QA.Action, False) == "OK":
-                    ActionList.append(QA)
+            if QA.Action == 2 or QA.Action == 3:  # 移动校验
+                if QuoridorRuleEngine.CheckMove(ThisChessBoard
+                                                , QA.ActionLocation.X, QA.ActionLocation.Y, QA.Action, False) == "OK":
+                    MoveActionList.append(QA)
             else:
                 ActionList.append(QA)
+
+        MoveScore = []
+        BestMove = MoveActionList[0]
+        for QA in MoveActionList:
+            SaveChessBoard = ChessBoard.SaveChessBoard(ThisChessBoard)
+            Hint = QuoridorRuleEngine.Action(SaveChessBoard, QA.ActionLocation.X, QA.ActionLocation.Y
+                                             , QA.Action)
+            if Hint == "OK":
+                AstarE = LR()
+                disbuff = 0
+                if Player_ToCreate == 0:
+                    disbuff = AstarE.AstarRestart(SaveChessBoard, 0
+                                                  , SaveChessBoard.Player1Location.X, SaveChessBoard.Player1Location.Y)
+                else:
+                    disbuff = AstarE.AstarRestart(SaveChessBoard, 1
+                                                  , SaveChessBoard.Player2Location.X, SaveChessBoard.Player2Location.Y)
+                MoveScore.append(disbuff)
+
+        MinScore = 10000
+        for i in range(len(MoveScore)):
+            if MoveScore[i] < MinScore:
+                MinScore = MoveScore[i]
+                BestMove = MoveActionList[i]
+
+        ActionList.append(BestMove)
 
         return ActionList
         # endregion

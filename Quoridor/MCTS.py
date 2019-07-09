@@ -4,6 +4,7 @@ import Quoridor.RuleEngine as RE
 import numpy as np
 from Quoridor.LookupRoad import Point
 from Quoridor.RuleEngine import ChessBoard
+import time
 
 
 class MonteCartoTreeNode:
@@ -11,7 +12,7 @@ class MonteCartoTreeNode:
     _Q = 0
     _P = 0
     _UCT = 0
-    _C = 0
+    _C = 0.01
     Children = []
     Father = -1
     NodePlayer = 0  # 0 代表玩家1 1 代表玩家2
@@ -74,22 +75,20 @@ class MonteCartoTreeNode:
             self.BackPropagation(-Leaf_Value)
         self.UpdateInfo(Leaf_Value)
 
-    def Expand(self, ThisChessBoard, Action_Priors):
+    def Expand(self, Action_Priors):
         """
         根据当前局面拓展一个未拓展节点
-        :param ThisChessBoard:当前局面棋盘
+        :param Action_Priors:当前局面可行动作评分列表
         :return:无
         """
         if self.IsLeafNode():
             #  拓展该节点
-            QABuff = []
-            QABuff = RE.QuoridorRuleEngine.CreateActionList(ThisChessBoard
-                                                            , MonteCartoTreeNode.ReversePlayer(self.NodePlayer))
-            for QA in QABuff:
+            for Action, Prob in Action_Priors:
                 MTSonNode = MonteCartoTreeNode(self, 0)
-                MTSonNode.NodeAction = QA.Action
-                MTSonNode.ActionLocation = QA.ActionLocation
+                MTSonNode.NodeAction = (Action // 100) % 10
+                MTSonNode.ActionLocation = Point((Action // 10) % 10, Action % 10)
                 MTSonNode.NodePlayer = MonteCartoTreeNode.ReversePlayer(self.NodePlayer)
+                MTSonNode._P = Prob
                 self.Children.append(MTSonNode)
 
     def IsLeafNode(self):
@@ -181,96 +180,185 @@ class MonteCartoTreeNode:
 
         return BestMoveNode
 
+    @staticmethod
+    def update_with_move(RootNode, last_move):
+        for MCTNode in RootNode.Children:
+            if MCTNode.NodeAction == ((last_move // 100) % 10) \
+                    and MCTNode.ActionLocation.X == ((last_move // 10) % 10)\
+                    and MCTNode.ActionLocation.Y == (last_move % 10):
+                RootNode = MCTNode
+            else:
+                RootNode = MonteCartoTreeNode(-1, [])
+
+
+def softmax(x):
+    probs = np.exp(x - np.max(x))
+    probs /= np.sum(probs)
+    return probs
+
 
 class MCTSearch:
-    def __init__(self, policy_value_fn, c_puct=5, Num_Simulation=300):
-        self.NowChessBoard = ChessBoard()
-        self.NowPlayer = 0  # 玩家1
+    def __init__(self, policy_value_fn
+                 , InitChessBoard=ChessBoard()
+                 , JudgePlayer=0
+                 , c_puct=5
+                 , Num_Simulation=300
+                 , IsSelfPlay=True):
+        self.InitChessBoard = InitChessBoard
         self.n_Simulation = Num_Simulation  # 模拟总次数
         self.PolicyNet = policy_value_fn  # 价值策略网络
         self.C_Puct = c_puct  # 探索率C
+        self.RootNode = MonteCartoTreeNode(-1, [])
+        self.CurrentPlayer = JudgePlayer
+        self.IsSelfPlay = IsSelfPlay
 
-    def OnceSimulation(self, RootNode, InitChessBoard, JudgePlayer):
-
+    def OnceSimulation(self, NowChessBoard, IsShowCB=False):
+        """
+        模拟一次,所有信息都会被保存在RootNode根节点内
+        :param InitChessBoard: 初始棋盘
+        :param JudgePlayer: 决策玩家
+        :return: 无
+        """
         # region 暂存挡板数量
-        Board1Save = InitChessBoard.NumPlayer1Board
-        Board2Save = InitChessBoard.NumPlayer2Board
+        Board1Save = NowChessBoard.NumPlayer1Board
+        Board2Save = NowChessBoard.NumPlayer2Board
         # endregion
         state = []
         StateBuff = np.zeros((4, 7, 7))
         StateBuff[2, 0, 3] = 1
         StateBuff[3, 6, 3] = 1
 
-        if RootNode.Children == []:
-            RootNode.Expand(InitChessBoard)
+        # if self.RootNode.Children == []:
+        #     self.RootNode.Expand(NowChessBoard)
 
-        SimluationChessBoard = RE.ChessBoard.SaveChessBoard(InitChessBoard)
+        SimluationChessBoard = RE.ChessBoard.SaveChessBoard(NowChessBoard)
 
-        NextExpandNode = RootNode
+        NextExpandNode = self.RootNode
 
         while True:
-            # 选择
-            NextExpandNode = NextExpandNode.Select()
+            if self.RootNode.Children != []:
+                # 选择
+                NextExpandNode = NextExpandNode.Select()
 
-            # region 模拟落子
-            HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
-                                                   , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
-                                                   , NextExpandNode.NodeAction
-                                                   , StateBuff)
+                # region 模拟落子
+                HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
+                                                       , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
+                                                       , NextExpandNode.NodeAction
+                                                       , StateBuff)
 
-            if HintStr != "OK":
-                print("错误提示：")
-                RE.ChessBoard.DrawNowChessBoard(SimluationChessBoard)
-                ErrorStr = NextExpandNode.NodeAction * 100 + NextExpandNode.ActionLocation.X * 10\
-                          + NextExpandNode.ActionLocation.Y
-                raise Exception(ErrorStr)
+                if HintStr != "OK":
+                    print("错误提示：")
+                    RE.ChessBoard.DrawNowChessBoard(SimluationChessBoard)
+                    ErrorStr = NextExpandNode.NodeAction * 100 + NextExpandNode.ActionLocation.X * 10\
+                              + NextExpandNode.ActionLocation.Y
+                    raise Exception(ErrorStr)
 
-            if NextExpandNode.NodeAction == 0 or NextExpandNode.NodeAction == 1:
-                if NextExpandNode.NodePlayer == 0:
-                    SimluationChessBoard.NumPlayer1Board -= 2
-                else:
-                    SimluationChessBoard.NumPlayer2Board -= 2
+                if NextExpandNode.NodeAction == 0 or NextExpandNode.NodeAction == 1:
+                    if NextExpandNode.NodePlayer == 0:
+                        SimluationChessBoard.NumPlayer1Board -= 2
+                    else:
+                        SimluationChessBoard.NumPlayer2Board -= 2
+
+                if IsShowCB:
+                    ChessBoard.DrawNowChessBoard(SimluationChessBoard)
+                    time.sleep(0.5)
 
             # endregion
+            # region 获取legal列表
+            QABuff = []
+            QABuff = RE.QuoridorRuleEngine.CreateActionList(SimluationChessBoard
+                                                      , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
+            LegalActionList = []
+            for QA in QABuff:
+                LegalActionList.append(QA.Action * 100 + QA.ActionLocation.X * 10 + QA.ActionLocation.Y)
+            # endregion
+
             # region 获得P、V数组
             state.append(StateBuff)
-            action_probs, leaf_value = self.PolicyNet(np.array(state))
+            action_probs, leaf_value = self.PolicyNet(np.array(state), LegalActionList)
 
             # endregion
             # region 检测是否胜利
             SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
             if SuccessHint != "No Success":
                 leaf_value = -1
-                if JudgePlayer == 0 and SuccessHint == "P1 Success":
+                if self.CurrentPlayer == 0 and SuccessHint == "P1 Success":
                     leaf_value = 1
-                if JudgePlayer == 1 and SuccessHint == "P2 Success":
+                if self.CurrentPlayer == 1 and SuccessHint == "P2 Success":
                     leaf_value = 1
                 NextExpandNode.BackPropagation(leaf_value)
                 break
             # endregion
 
             # 拓展
-            NextExpandNode.Expand(SimluationChessBoard)
+            NextExpandNode.Expand(action_probs)
 
         # region 恢复挡板数量
-        InitChessBoard.NumPlayer1Board = Board1Save
-        InitChessBoard.NumPlayer2Board = Board2Save
+        NowChessBoard.NumPlayer1Board = Board1Save
+        NowChessBoard.NumPlayer2Board = Board2Save
         # endregion
 
-    def GetActionProbs(self, state, temp=1e-3):
-        pass
+    def GetActionProbs(self, ChessBoard_Init, temp=1e-3):
+        """
+        通过n_Simulation次模拟获得最终的决策动作列表及其Prob值
+        :param ChessBoard_Init:
+        :param temp:
+        :return:
+        """
+        # 模拟n_Simulation次
+        for i in range(self.n_Simulation):
+            Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
+            self.OnceSimulation(Sim_ChessBoard, True)
 
-    def GetActionList(self, ChessBoard, temp=1e-3, return_prob=False):
-        move_probs = np.zeros(4, 7 * 7)
+        # 计算每个动作的概率pi值
+        acts = []
+        _NList = []
+        for MCTNode in self.RootNode.Children:
+            ActionBuff = MCTNode.NodeAction * 100 + MCTNode.ActionLocation.X * 10 + MCTNode.ActionLocation.Y
+            acts.append(ActionBuff)
+            _NList.append(MCTNode._N)
 
+        act_probs = softmax(1.0/temp * np.log(np.array(_NList) + 1e-10))
 
+        return acts, act_probs
 
-    def SelfPlay(self):
-        self.NowChessBoard = ChessBoard()
-        self.NowPlayer = 0
+    def GetPolicyAction(self, ChessBoard_Init, temp=1e-3, return_prob=False):
+        """
+        获得动作可供决策的动作及其prob值
+        :param ChessBoard_Init:
+        :param temp:
+        :param return_prob: 是否返回Prob值
+        :return:
+        """
+        move_probs = np.zeros((4, 7 * 7))
+
+        acts, probs = self.GetActionProbs(ChessBoard_Init, temp)
+
+        for i in range(len(acts)):
+            ActionBuff = (acts[i] // 100) % 10
+            LocationBuff = (acts[i] // 10) % 10 * 7 + acts[i] % 10
+            move_probs[ActionBuff, LocationBuff] = probs[i]
+
+        if self.IsSelfPlay:
+            move = np.random.choice(acts, p=0.75 * probs + 0.25 * np.random.dirichlet(
+                0.3 * np.ones(len(probs))))  # 增加一个Dirichlet Noise来探索
+            self.RootNode.update_with_move(self.RootNode, move)
+        else:
+            move = np.random.choice(acts, p=probs)  # 如果用默认值temp=1e-3，就相当于选择P值最高的动作
+            self.RootNode.update_with_move(self.RootNode, -1)
+        if return_prob:
+            return move, move_probs
+        else:
+            return move
+
+    def SelfPlay(self, JudgePlayer, is_shown=False, temp=1e-3):
+        self.InitChessBoard = ChessBoard()
+        self.CurrentPlayer = JudgePlayer
         states, mcts_probs, current_players = [], [], []
         while True:
-            a = 0
+            move, move_probs = self.GetPolicyAction(self.InitChessBoard, temp=temp, return_prob=True)
+
+
 
 
 
