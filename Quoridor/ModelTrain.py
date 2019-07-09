@@ -37,15 +37,18 @@ class Train:
         self.kl_targ = 0.02
 
     def Collect_SelfPlay_Data(self, n=3):
-        statebuff = np.zeros((4, 10, 10))
-        probbuff = np.zeros((10 * 10))
-        for i in range(0, 10):
-            for j in range(0, 10):
+        statebuff = np.zeros((4, 7, 7))
+        probbuff = np.zeros((4, 7 * 7))
+        for i in range(0, 7):
+            for j in range(0, 7):
                 statebuff[0, i, j] = 0.0
                 statebuff[1, i, j] = 1.0
                 statebuff[2, i, j] = 2.0
                 statebuff[3, i, j] = 3.0
-                probbuff[i * 10 + j] = 0.01 * (i * 10 + j)
+                probbuff[0, i * 7 + j] = 0.01 * (i * 10 + j)
+                probbuff[1, i * 7 + j] = 0.01 * (i * 10 + j)
+                probbuff[2, i * 7 + j] = 0.01 * (i * 10 + j)
+                probbuff[3, i * 7 + j] = 0.01 * (i * 10 + j)
         state = []
         probs = []
         for i in range(n):
