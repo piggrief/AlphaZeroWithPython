@@ -3,6 +3,7 @@
 import RuleEngine as RE
 import numpy as np
 from LookupRoad import Point
+from RuleEngine import ChessBoard
 
 
 class MonteCartoTreeNode:
@@ -31,11 +32,11 @@ class MonteCartoTreeNode:
         :return:节点的值
         """
         # 普通UCT
-        ExploitationComponent = SonNode._Q / SonNode._N
-        ExplorationComponent = self._C * np.sqrt((np.log10(self._N) / SonNode._N))
-        UCTBuff = ExploitationComponent + ExplorationComponent
+        # ExploitationComponent = SonNode._Q / SonNode._N
+        # ExplorationComponent = self._C * np.sqrt((np.log10(self._N) / SonNode._N))
+        # UCTBuff = ExploitationComponent + ExplorationComponent
         # 带P的
-        # UCTBuff = self._C * SonNode._P * np.sqrt(self._N / (1 + SonNode._N))
+        UCTBuff = self._C * SonNode._P * np.sqrt(self._N / (1 + SonNode._N))
 
         return UCTBuff
 
@@ -180,8 +181,95 @@ class MonteCartoTreeNode:
 
         return BestMoveNode
 
-    #  @staticmethod
-    #  def SelfPlay():
+
+class MCTS:
+    def __init__(self,policy_value_fn, c_puct=5, Num_Simulation=300):
+        self.NowChessBoard = ChessBoard()
+        self.NowPlayer = 0  # 玩家1
+        self.n_Simulation = Num_Simulation  # 模拟总次数
+        self.PolicyNet = policy_value_fn  # 价值策略网络
+        self.C_Puct = c_puct  # 探索率C
+
+    def OnceSimulation(self, RootNode, InitChessBoard, JudgePlayer):
+
+        # region 暂存挡板数量
+        Board1Save = InitChessBoard.NumPlayer1Board
+        Board2Save = InitChessBoard.NumPlayer2Board
+        # endregion
+        state = []
+        StateBuff = np.zeros((4, 7*7))
+        StateBuff[2, 0, 3] = 1
+        StateBuff[3, 6, 3] = 1
+
+        if RootNode.Children == []:
+            RootNode.Expand(InitChessBoard)
+
+        SimluationChessBoard = RE.ChessBoard.SaveChessBoard(InitChessBoard)
+
+        NextExpandNode = RootNode
+
+        while True:
+            # 选择
+            NextExpandNode = NextExpandNode.Select()
+
+            # region 模拟落子
+            HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
+                                                   , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
+                                                   , NextExpandNode.NodeAction
+                                                   , StateBuff)
+
+            if HintStr != "OK":
+                print("错误提示：")
+                RE.ChessBoard.DrawNowChessBoard(SimluationChessBoard)
+                ErrorStr = NextExpandNode.NodeAction * 100 + NextExpandNode.ActionLocation.X * 10\
+                          + NextExpandNode.ActionLocation.Y
+                raise Exception(ErrorStr)
+
+            if NextExpandNode.NodeAction == 0 or NextExpandNode.NodeAction == 1:
+                if NextExpandNode.NodePlayer == 0:
+                    SimluationChessBoard.NumPlayer1Board -= 2
+                else:
+                    SimluationChessBoard.NumPlayer2Board -= 2
+
+            # endregion
+            # region 获得P、V数组
+            state.append(StateBuff)
+            action_probs, leaf_value = self._policy(state)
+            # endregion
+            # region 检测是否胜利
+            SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
+            if SuccessHint != "No Success":
+                leaf_value = -1
+                if JudgePlayer == 0 and SuccessHint == "P1 Success":
+                    leaf_value = 1
+                if JudgePlayer == 1 and SuccessHint == "P2 Success":
+                    leaf_value = 1
+                NextExpandNode.BackPropagation(leaf_value)
+                break
+            # endregion
+
+            # 拓展
+            NextExpandNode.Expand(SimluationChessBoard)
+
+        # region 恢复挡板数量
+        InitChessBoard.NumPlayer1Board = Board1Save
+        InitChessBoard.NumPlayer2Board = Board2Save
+        # endregion
+
+    def GetActionProbs(self, state, temp=1e-3):
+        pass
+
+    def GetActionList(self, ChessBoard, temp=1e-3, return_prob=False):
+        move_probs = np.zeros(4, 7 * 7)
+
+
+
+    def SelfPlay(self):
+        self.NowChessBoard = ChessBoard()
+        self.NowPlayer = 0
+        states, mcts_probs, current_players = [], [], []
+        while True:
+            a = 0
 
 
 
