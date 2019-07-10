@@ -308,7 +308,7 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-            self.OnceSimulation(Sim_ChessBoard, True)
+            self.OnceSimulation(Sim_ChessBoard)  # , True)
 
         # 计算每个动作的概率pi值
         acts = []
