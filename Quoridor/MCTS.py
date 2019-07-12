@@ -5,6 +5,7 @@ import numpy as np
 from Quoridor.LookupRoad import Point
 from Quoridor.RuleEngine import ChessBoard
 import time
+import concurrent.futures
 
 
 class MonteCartoTreeNode:
@@ -305,15 +306,16 @@ class MCTSearch:
         :param temp:
         :return:
         """
+        StartTime = time.time()
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-            # StartTime = time.time()
-            self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
-            # EndTime = time.time()
-            # print("模拟一次时间：", end='')
-            # print(EndTime - StartTime)
 
+            self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
+
+        EndTime = time.time()
+        print("总模拟时间：", end='')
+        print(EndTime - StartTime)
         # 计算每个动作的概率pi值
         acts = []
         _NList = []
