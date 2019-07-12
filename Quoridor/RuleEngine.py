@@ -56,6 +56,9 @@ class ChessBoard:
         self.Player2Location = Point(6, 3)
         self.NumPlayer1Board = 16
         self.NumPlayer2Board = 16
+        self.ChessBoardState = np.zeros((4, 7, 7))
+        self.ChessBoardState[2, 0, 3] = 1
+        self.ChessBoardState[3, 6, 3] = 1
         return
 
     @staticmethod
@@ -131,6 +134,11 @@ class QuoridorRuleEngine:
 
     @staticmethod
     def CheckGameResult(ChessBoardToCheck):
+        """
+        根据棋盘对象检测游戏结果
+        :param ChessBoardToCheck:
+        :return: "P1 Success"表示P1胜利，"P2 Success"表示P2胜利，"No Success"表示没有人胜利
+        """
         if ChessBoardToCheck.Player1Location.X == 6:
             return "P1 Success"
         elif ChessBoardToCheck.Player2Location.X == 0:
@@ -393,14 +401,13 @@ class QuoridorRuleEngine:
         return "MoveError"
 
     @staticmethod
-    def Action(ChessBoard, row, col, NowAction, state_to_renew=np.zeros((4, 7, 7))):
+    def Action(ChessBoard, row, col, NowAction):
         """
         行动操作，主要是用来改变棋盘状态数组
         :param ChessBoard:待行动的棋盘状态
         :param row:行动的行
         :param col:行动的列
         :param NowAction:行动操作
-        :param state_to_renew:待更新的棋盘状态，用于神经网络的输入——其中：四个维度：左挡板，上挡板，P1，P2， 0表示没有，1表示有
         :return:行动结果，可不可行,"OK"代表行动成功
         """
         ChessBoard_ToAction = ChessBoard.ChessBoardAll
@@ -413,8 +420,8 @@ class QuoridorRuleEngine:
                 return "十字交叉违规！"
             ChessBoard_ToAction[row, col].IfLeftBoard = True
             ChessBoard_ToAction[row + 1, col].IfLeftBoard = True
-            state_to_renew[0, row, col] = 1
-            state_to_renew[0, row + 1, col] = 1
+            ChessBoard.ChessBoardState[0, row, col] = 1
+            ChessBoard.ChessBoardState[0, row + 1, col] = 1
             return "OK"
         elif NowAction == 1:  # 放置横挡板
             if row <= 0 or row >= 7 or col >= 6:
@@ -425,24 +432,24 @@ class QuoridorRuleEngine:
                 return "十字交叉违规！"
             ChessBoard_ToAction[row, col].IfUpBoard = True
             ChessBoard_ToAction[row, col + 1].IfUpBoard = True
-            state_to_renew[1, row, col] = 1
-            state_to_renew[1, row, col + 1] = 1
+            ChessBoard.ChessBoardState[1, row, col] = 1
+            ChessBoard.ChessBoardState[1, row, col + 1] = 1
             return "OK"
         elif NowAction == 2:  # 移动玩家1
-            state_to_renew[2, ChessBoard.Player1Location.X, ChessBoard.Player1Location.Y] = 0
+            ChessBoard.ChessBoardState[2, ChessBoard.Player1Location.X, ChessBoard.Player1Location.Y] = 0
             StrHint1 = QuoridorRuleEngine.CheckMove(ChessBoard, row, col, 2)
             if StrHint1 == "OK":
-                state_to_renew[2, row, col] = 1
+                ChessBoard.ChessBoardState[2, row, col] = 1
             else:
-                state_to_renew[2, ChessBoard.Player1Location.X, ChessBoard.Player1Location.Y] = 1
+                ChessBoard.ChessBoardState[2, ChessBoard.Player1Location.X, ChessBoard.Player1Location.Y] = 1
             return StrHint1
         elif NowAction == 3:  # 移动玩家2
-            state_to_renew[3, ChessBoard.Player2Location.X, ChessBoard.Player2Location.Y] = 0
+            ChessBoard.ChessBoardState[3, ChessBoard.Player2Location.X, ChessBoard.Player2Location.Y] = 0
             StrHint2 = QuoridorRuleEngine.CheckMove(ChessBoard, row, col, 3)
             if StrHint2 == "OK":
-                state_to_renew[3, row, col] = 1
+                ChessBoard.ChessBoardState[3, row, col] = 1
             else:
-                state_to_renew[3, ChessBoard.Player2Location.X, ChessBoard.Player2Location.Y] = 1
+                ChessBoard.ChessBoardState[3, ChessBoard.Player2Location.X, ChessBoard.Player2Location.Y] = 1
             return StrHint2
         else:
             return "Error"

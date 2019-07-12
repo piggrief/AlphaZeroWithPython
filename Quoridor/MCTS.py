@@ -215,8 +215,8 @@ class MCTSearch:
     def OnceSimulation(self, NowChessBoard, IsShowCB=False):
         """
         模拟一次,所有信息都会被保存在RootNode根节点内
-        :param InitChessBoard: 初始棋盘
-        :param JudgePlayer: 决策玩家
+        :param NowChessBoard: 初始棋盘
+        :param IsShowCB: 是否显示棋盘
         :return: 无
         """
         # region 暂存挡板数量
@@ -224,9 +224,6 @@ class MCTSearch:
         Board2Save = NowChessBoard.NumPlayer2Board
         # endregion
         state = []
-        StateBuff = np.zeros((4, 7, 7))
-        StateBuff[2, 0, 3] = 1
-        StateBuff[3, 6, 3] = 1
 
         # if self.RootNode.Children == []:
         #     self.RootNode.Expand(NowChessBoard)
@@ -243,8 +240,7 @@ class MCTSearch:
                 # region 模拟落子
                 HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
                                                        , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
-                                                       , NextExpandNode.NodeAction
-                                                       , StateBuff)
+                                                       , NextExpandNode.NodeAction)
 
                 if HintStr != "OK":
                     print("错误提示：")
@@ -267,14 +263,14 @@ class MCTSearch:
             # region 获取legal列表
             QABuff = []
             QABuff = RE.QuoridorRuleEngine.CreateActionList(SimluationChessBoard
-                                                      , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
+                                                            , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
             LegalActionList = []
             for QA in QABuff:
                 LegalActionList.append(QA.Action * 100 + QA.ActionLocation.X * 10 + QA.ActionLocation.Y)
             # endregion
 
             # region 获得P、V数组
-            state.append(StateBuff)
+            state.append(SimluationChessBoard.ChessBoardState)
             action_probs, leaf_value = self.PolicyNet(np.array(state), LegalActionList)
 
             # endregion
@@ -308,7 +304,7 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-            self.OnceSimulation(Sim_ChessBoard)  # , True)
+            self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
 
         # 计算每个动作的概率pi值
         acts = []
@@ -355,9 +351,35 @@ class MCTSearch:
         self.InitChessBoard = ChessBoard()
         self.CurrentPlayer = JudgePlayer
         states, mcts_probs, current_players = [], [], []
+        CurrentPlayer = JudgePlayer
         while True:
             move, move_probs = self.GetPolicyAction(self.InitChessBoard, temp=temp, return_prob=True)
+            # region 保存当前局面数据
+            states.append(self.InitChessBoard.ChessBoardState)
+            mcts_probs.append(move_probs)
+            current_players.append(CurrentPlayer)
+            # endregion
 
+            RE.QuoridorRuleEngine.Action(self.InitChessBoard, (move // 10) % 10, move % 10, (move // 100) % 10)
+
+            if is_shown:
+                ChessBoard.DrawNowChessBoard(self.InitChessBoard)
+
+            ResultStr = RE.QuoridorRuleEngine.CheckGameResult(self.InitChessBoard)
+
+            if ResultStr != "No Success":
+                winners_z = np.zeros(len(current_players))
+                WinnerPlayer = 0  # P1
+                if ResultStr == "P2 Success":
+                    WinnerPlayer = 1  # P2
+
+                winners_z[np.array(current_players) == WinnerPlayer] = 1.0
+                winners_z[np.array(current_players) != WinnerPlayer] = -1.0
+
+                if is_shown:
+                    print("游戏结束，获胜玩家：", WinnerPlayer)
+
+                return WinnerPlayer, zip(states, mcts_probs, winners_z)
 
 
 
