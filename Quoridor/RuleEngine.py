@@ -174,7 +174,7 @@ class QuoridorRuleEngine:
 
         ChessBoardBuff = ChessBoard.SaveChessBoard(ThisChessBoard)
 
-        Hint = QuoridorRuleEngine.Action(ThisChessBoard, Location_row, Location_col, WhichBoard)
+        Hint = QuoridorRuleEngine.Action(ThisChessBoard, Location_row, Location_col, WhichBoard, Player)
 
         if Hint == "OK":
             AstarE = LR()
@@ -401,13 +401,14 @@ class QuoridorRuleEngine:
         return "MoveError"
 
     @staticmethod
-    def Action(ChessBoard, row, col, NowAction):
+    def Action(ChessBoard, row, col, NowAction, ActionPlayer):
         """
         行动操作，主要是用来改变棋盘状态数组
         :param ChessBoard:待行动的棋盘状态
         :param row:行动的行
         :param col:行动的列
         :param NowAction:行动操作
+        :param ActionPlayer:行动玩家，用来减少某玩家挡板数
         :return:行动结果，可不可行,"OK"代表行动成功
         """
         ChessBoard_ToAction = ChessBoard.ChessBoardAll
@@ -422,6 +423,10 @@ class QuoridorRuleEngine:
             ChessBoard_ToAction[row + 1, col].IfLeftBoard = True
             ChessBoard.ChessBoardState[0, row, col] = 1
             ChessBoard.ChessBoardState[0, row + 1, col] = 1
+            if ActionPlayer == 0:
+                ChessBoard.NumPlayer1Board -= 2
+            if ActionPlayer == 1:
+                ChessBoard.NumPlayer2Board -= 2
             return "OK"
         elif NowAction == 1:  # 放置横挡板
             if row <= 0 or row >= 7 or col >= 6:
@@ -434,6 +439,10 @@ class QuoridorRuleEngine:
             ChessBoard_ToAction[row, col + 1].IfUpBoard = True
             ChessBoard.ChessBoardState[1, row, col] = 1
             ChessBoard.ChessBoardState[1, row, col + 1] = 1
+            if ActionPlayer == 0:
+                ChessBoard.NumPlayer1Board -= 2
+            if ActionPlayer == 1:
+                ChessBoard.NumPlayer2Board -= 2
             return "OK"
         elif NowAction == 2:  # 移动玩家1
             ChessBoard.ChessBoardState[2, ChessBoard.Player1Location.X, ChessBoard.Player1Location.Y] = 0
@@ -545,7 +554,7 @@ class QuoridorRuleEngine:
         for QA in MoveActionList:
             SaveChessBoard = ChessBoard.SaveChessBoard(ThisChessBoard)
             Hint = QuoridorRuleEngine.Action(SaveChessBoard, QA.ActionLocation.X, QA.ActionLocation.Y
-                                             , QA.Action)
+                                             , QA.Action, Player_ToCreate)
             if Hint == "OK":
                 AstarE = LR()
                 disbuff = 0

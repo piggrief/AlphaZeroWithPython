@@ -182,13 +182,16 @@ class MonteCartoTreeNode:
 
     @staticmethod
     def update_with_move(RootNode, last_move):
+        MCTNodeBuff = MonteCartoTreeNode(-1, [])
         for MCTNode in RootNode.Children:
             if MCTNode.NodeAction == ((last_move // 100) % 10) \
                     and MCTNode.ActionLocation.X == ((last_move // 10) % 10)\
                     and MCTNode.ActionLocation.Y == (last_move % 10):
-                RootNode = MCTNode
-            else:
-                RootNode = MonteCartoTreeNode(-1, [])
+                MCTNodeBuff = MCTNode
+                break
+        RootNode = MCTNodeBuff
+        return RootNode
+
 
 
 def softmax(x):
@@ -240,7 +243,7 @@ class MCTSearch:
                 # region 模拟落子
                 HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
                                                        , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
-                                                       , NextExpandNode.NodeAction)
+                                                       , NextExpandNode.NodeAction, NextExpandNode.NodePlayer)
 
                 if HintStr != "OK":
                     print("错误提示：")
@@ -248,12 +251,6 @@ class MCTSearch:
                     ErrorStr = NextExpandNode.NodeAction * 100 + NextExpandNode.ActionLocation.X * 10\
                               + NextExpandNode.ActionLocation.Y
                     raise Exception(ErrorStr)
-
-                if NextExpandNode.NodeAction == 0 or NextExpandNode.NodeAction == 1:
-                    if NextExpandNode.NodePlayer == 0:
-                        SimluationChessBoard.NumPlayer1Board -= 2
-                    else:
-                        SimluationChessBoard.NumPlayer2Board -= 2
 
                 if IsShowCB:
                     ChessBoard.DrawNowChessBoard(SimluationChessBoard)
@@ -271,8 +268,11 @@ class MCTSearch:
 
             # region 获得P、V数组
             state.append(SimluationChessBoard.ChessBoardState)
+            # StartTime = time.time()
             action_probs, leaf_value = self.PolicyNet(np.array(state), LegalActionList)
-
+            # EndTime = time.time()
+            # print("策略价值网络计算时间：", end='')
+            # print(EndTime - StartTime)
             # endregion
             # region 检测是否胜利
             SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
@@ -304,7 +304,11 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
+            StartTime = time.time()
             self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
+            EndTime = time.time()
+            print("模拟一次时间：", end='')
+            print(EndTime - StartTime)
 
         # 计算每个动作的概率pi值
         acts = []
@@ -338,7 +342,7 @@ class MCTSearch:
         if self.IsSelfPlay:
             move = np.random.choice(acts, p=0.75 * probs + 0.25 * np.random.dirichlet(
                 0.3 * np.ones(len(probs))))  # 增加一个Dirichlet Noise来探索
-            self.RootNode.update_with_move(self.RootNode, move)
+            self.RootNode = self.RootNode.update_with_move(self.RootNode, move)
         else:
             move = np.random.choice(acts, p=probs)  # 如果用默认值temp=1e-3，就相当于选择P值最高的动作
             self.RootNode.update_with_move(self.RootNode, -1)
@@ -360,10 +364,16 @@ class MCTSearch:
             current_players.append(CurrentPlayer)
             # endregion
 
-            RE.QuoridorRuleEngine.Action(self.InitChessBoard, (move // 10) % 10, move % 10, (move // 100) % 10)
+            Hint = RE.QuoridorRuleEngine.Action(self.InitChessBoard
+                                                , (move // 10) % 10, move % 10, (move // 100) % 10
+                                                , CurrentPlayer)
 
             if is_shown:
                 ChessBoard.DrawNowChessBoard(self.InitChessBoard)
+                print("P1Board:", end='')
+                print(self.InitChessBoard.NumPlayer1Board, end='')
+                print("P2Board:", end='')
+                print(self.InitChessBoard.NumPlayer2Board)
 
             ResultStr = RE.QuoridorRuleEngine.CheckGameResult(self.InitChessBoard)
 
@@ -380,6 +390,9 @@ class MCTSearch:
                     print("游戏结束，获胜玩家：", WinnerPlayer)
 
                 return WinnerPlayer, zip(states, mcts_probs, winners_z)
+
+            CurrentPlayer = MonteCartoTreeNode.ReversePlayer(CurrentPlayer)
+
 
 
 
