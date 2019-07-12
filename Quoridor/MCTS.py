@@ -259,8 +259,12 @@ class MCTSearch:
             # endregion
             # region 获取legal列表
             QABuff = []
+            # StartTime = time.time()
             QABuff = RE.QuoridorRuleEngine.CreateActionList(SimluationChessBoard
                                                             , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
+            # EndTime = time.time()
+            # print("列表创建计算时间：", end='')
+            # print(EndTime - StartTime)
             LegalActionList = []
             for QA in QABuff:
                 LegalActionList.append(QA.Action * 100 + QA.ActionLocation.X * 10 + QA.ActionLocation.Y)
@@ -304,11 +308,11 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-            StartTime = time.time()
+            # StartTime = time.time()
             self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
-            EndTime = time.time()
-            print("模拟一次时间：", end='')
-            print(EndTime - StartTime)
+            # EndTime = time.time()
+            # print("模拟一次时间：", end='')
+            # print(EndTime - StartTime)
 
         # 计算每个动作的概率pi值
         acts = []
@@ -392,14 +396,3 @@ class MCTSearch:
                 return WinnerPlayer, zip(states, mcts_probs, winners_z)
 
             CurrentPlayer = MonteCartoTreeNode.ReversePlayer(CurrentPlayer)
-
-
-
-
-
-
-
-
-
-
-
