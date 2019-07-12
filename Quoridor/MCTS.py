@@ -6,6 +6,7 @@ from Quoridor.LookupRoad import Point
 from Quoridor.RuleEngine import ChessBoard
 import time
 import concurrent.futures
+import copy
 
 
 class MonteCartoTreeNode:
@@ -310,7 +311,6 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-
             self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
 
         EndTime = time.time()
@@ -337,7 +337,7 @@ class MCTSearch:
         :return:
         """
         move_probs = np.zeros((4, 7 * 7))
-
+        # self.RootNode.NodePlayer = ActionPlayer
         acts, probs = self.GetActionProbs(ChessBoard_Init, temp)
 
         for i in range(len(acts)):
@@ -361,13 +361,16 @@ class MCTSearch:
         self.InitChessBoard = ChessBoard()
         self.CurrentPlayer = JudgePlayer
         states, mcts_probs, current_players = [], [], []
-        CurrentPlayer = JudgePlayer
+        CurrentPlayer = 0
+        self.RootNode.NodePlayer = 1
         while True:
-            move, move_probs = self.GetPolicyAction(self.InitChessBoard, temp=temp, return_prob=True)
+            move, move_probs = self.GetPolicyAction(self.InitChessBoard
+                                                    , temp=temp, return_prob=True)
             # region 保存当前局面数据
-            states.append(self.InitChessBoard.ChessBoardState)
+            ToSaveStates = copy.deepcopy(self.InitChessBoard.ChessBoardState)
+            states.append(ToSaveStates)
             mcts_probs.append(move_probs)
-            current_players.append(CurrentPlayer)
+            current_players.append(copy.deepcopy(CurrentPlayer))
             # endregion
 
             Hint = RE.QuoridorRuleEngine.Action(self.InitChessBoard
@@ -376,6 +379,10 @@ class MCTSearch:
 
             if is_shown:
                 ChessBoard.DrawNowChessBoard(self.InitChessBoard)
+                print("NowPlayer：", end='')
+                print(CurrentPlayer, end='')
+                print("NowAction：", end='')
+                print(move)
                 print("P1Board:", end='')
                 print(self.InitChessBoard.NumPlayer1Board, end='')
                 print("P2Board:", end='')

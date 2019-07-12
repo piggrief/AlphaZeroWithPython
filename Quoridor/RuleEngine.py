@@ -93,6 +93,37 @@ class ChessBoard:
         print()
 
     @staticmethod
+    def DrawChessBoardState(State):
+        """
+        绘制棋盘
+        :return:
+        """
+        for i in range(0, State.shape[1] * 2):
+            rowindex = i // 2
+            for j in range(0, State.shape[2] * 2):
+                colindex = j // 2
+                if i % 2 == 0:  # 横档板显示行
+                    if State[1, rowindex, colindex] == 1:
+                        print("\033[31m─\033[0m", end='')
+                    else:
+                        print("─", end='')  # ─
+                else:
+                    if j % 2 == 0:  # 竖挡板显示列
+                        if State[0, rowindex, colindex] == 1:
+                            print("\033[31m|\033[0m", end='')
+                        else:
+                            print("|", end='')
+                    else:
+                        if State[2, rowindex, colindex] == 1:  # 白子
+                            print("⚪", end='')
+                        elif State[3, rowindex, colindex] == 1:  # 黑子
+                            print("●", end='')
+                        else:
+                            print(" ", end='')
+            print()
+        print()
+
+    @staticmethod
     def SaveChessBoard(ChessBoardNow):
         """
         保存棋盘至返回值
