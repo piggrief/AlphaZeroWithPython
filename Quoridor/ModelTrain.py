@@ -4,14 +4,16 @@ from collections import defaultdict, deque
 import random
 import time
 import numpy as np
+from Quoridor.MCTS import MCTSearch
+import json
 
 
 class Train:
 
-    def __init__(self, policy_value_net, save_dir="D://",
+    def __init__(self, policy_value_net, save_dir="D://Model",
                  learn_rate=2e-4,
                  temp=1.0,
-                 n_playout=300,
+                 n_playout=1,  # 300
                  c_puct=5,
                  buffer_size=10000,
                  batch_size=3,
@@ -19,6 +21,7 @@ class Train:
                  check_freq=1,
                  play_batch_size=1,
                  game_batch_num=1):
+        self.MCT = MCTSearch(policy_value_net.policy_value_fn, Num_Simulation=n_playout)
         self.policy_value_net = policy_value_net
         self.save_dir = save_dir
 
@@ -36,37 +39,12 @@ class Train:
         self.lr_multiplier = 1.0  # 根据KL调整学习速率
         self.kl_targ = 0.02
 
-    def Collect_SelfPlay_Data(self, n=3):
-        statebuff = np.zeros((4, 7, 7))
-        probbuff = np.zeros((4, 7 * 7))
-        for i in range(0, 7):
-            for j in range(0, 7):
-                statebuff[0, i, j] = 0.0
-                statebuff[1, i, j] = 1.0
-                statebuff[2, i, j] = 2.0
-                statebuff[3, i, j] = 3.0
-                probbuff[0, i * 7 + j] = 0.01 * (i * 10 + j)
-                probbuff[1, i * 7 + j] = 0.01 * (i * 10 + j)
-                probbuff[2, i * 7 + j] = 0.01 * (i * 10 + j)
-                probbuff[3, i * 7 + j] = 0.01 * (i * 10 + j)
-        state = []
-        probs = []
-        for i in range(n):
-            state.append(statebuff)
-            probs.append(probbuff)
-
-        state = np.array(state)
-
-        winners_z = [1, -1, 1]
-
-        Batch = zip(state, probs, winners_z)
-
-        Batch = list(Batch)[:]
-
-        self.epochs = 3
-
-        for i in range(0, n):
-            self.data_buffer.extend(Batch)
+    def Collect_SelfPlay_Data(self, GameNum=1):
+        for i in range(GameNum):
+            winner, play_data = self.MCT.SelfPlay(0, True, temp=0.1)
+            play_data = list(play_data)[:]
+            self.episode_len = len(play_data)
+            self.data_buffer.extend(play_data)
 
     def policy_update(self):
         mini_batch = random.sample(self.data_buffer, self.batch_size)
@@ -96,18 +74,20 @@ class Train:
 
     def run(self):
         try:
-            start_time = time.time()
             for i in range(self.game_batch_num):
                 self.Collect_SelfPlay_Data()
                 print("batch_i={}, episode_len={}".format(i + 1, self.epochs))
                 #if len(self.data_buffer) > self.batch_size:
+                start_time = time.time()
                 loss, entropy = self.policy_update()
                 if (i+1) % self.check_freq == 0:
                     print("save model " + str(i+1))
                     save_dir = self.save_dir + "/" + str(i+1)
-                    # self.policy_value_net.save_model(save_dir + "/policy_value_net.model")
+                    self.policy_value_net.save_model(save_dir + "/policy_value_net.model")
                     print("用时：", end='')
                     print(time.time()-start_time)
+                    with open(save_dir + "/statistics.json", "w") as file:
+                        json.dump({"loss": float(loss), "entropy": float(entropy), "time": time.time()-start_time}, file)
                     # print("loss：", end='')
                     # print(loss)
                     # print("entropy：", end='')

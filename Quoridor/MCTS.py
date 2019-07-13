@@ -311,7 +311,11 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
+            SimStartTime = time.time()
             self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
+            SimEndTime = time.time()
+            print("一次模拟时间：", end='')
+            print(SimEndTime - StartTime)
 
         EndTime = time.time()
         print("总模拟时间：", end='')
@@ -398,6 +402,10 @@ class MCTSearch:
 
                 winners_z[np.array(current_players) == WinnerPlayer] = 1.0
                 winners_z[np.array(current_players) != WinnerPlayer] = -1.0
+
+                if 0 in winners_z:
+                    ErrorStr = "winners_z有0元素"
+                    raise Exception(ErrorStr) 
 
                 if is_shown:
                     print("游戏结束，获胜玩家：", WinnerPlayer)
