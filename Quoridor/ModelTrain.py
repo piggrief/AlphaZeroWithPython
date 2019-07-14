@@ -6,10 +6,11 @@ import time
 import numpy as np
 from Quoridor.MCTS import MCTSearch
 import json
+from multiprocessing.dummy import Pool as ThreadPool
+import multiprocessing as mp
 
 
 class Train:
-
     def __init__(self, policy_value_net, save_dir="D://Model",
                  learn_rate=2e-4,
                  temp=1.0,
@@ -39,12 +40,34 @@ class Train:
         self.lr_multiplier = 1.0  # 根据KL调整学习速率
         self.kl_targ = 0.02
 
+    def Collect_SelfPlay_Data_OnceGame(self):
+        # print(index, end='')
+        print("开始收集数据")
+        winner, play_data = self.MCT.SelfPlay(0, False, temp=0.1)
+        play_data = list(play_data)[:]
+        return play_data
+
     def Collect_SelfPlay_Data(self, GameNum=1):
+        # index = range(GameNum)
+        StartTime = time.time()
+
+        # jobs = []
+        # p = mp.Pool(processes=3)
+        # p1 = p.apply_async(self.Collect_SelfPlay_Data_OnceGame, args=(self,))
+        # p.close()
+        # p.join()
+
+        # self.pool = multiprocessing.Pool(processes=4)
+        # PlayData = self.pool.map(self.Collect_SelfPlay_Data_OnceGame, index)
+        # self.pool.close()
+        # self.pool.join()
+
         for i in range(GameNum):
-            winner, play_data = self.MCT.SelfPlay(0, True, temp=0.1)
-            play_data = list(play_data)[:]
-            self.episode_len = len(play_data)
-            self.data_buffer.extend(play_data)
+            self.data_buffer.extend(self.Collect_SelfPlay_Data_OnceGame())
+
+        EndTime = time.time()
+        print("收集数据用时：")
+        aaa = 0
 
     def policy_update(self):
         mini_batch = random.sample(self.data_buffer, self.batch_size)
@@ -76,7 +99,7 @@ class Train:
         try:
             for i in range(self.game_batch_num):
                 self.Collect_SelfPlay_Data()
-                print("batch_i={}, episode_len={}".format(i + 1, self.epochs))
+                # print("batch_i={}, episode_len={}".format(i + 1, self.epochs))
                 #if len(self.data_buffer) > self.batch_size:
                 start_time = time.time()
                 loss, entropy = self.policy_update()

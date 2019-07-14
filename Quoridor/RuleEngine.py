@@ -608,3 +608,102 @@ class QuoridorRuleEngine:
         return ActionList
         # endregion
 
+    @staticmethod
+    def CreateMoveActionList(ThisChessBoard, Player_ToCreate):
+        """
+        创建可选动作列表（全部可能的动作）
+        :param ThisChessBoard:当前棋盘状态
+        :param Player_ToCreate:待创建动作的玩家
+        :return:动作列表
+        """
+        ActionListBuff = []
+        PlayerLocation = Point(-1, -1)
+        if Player_ToCreate == 0:  # 玩家1
+            PlayerLocation.X = ThisChessBoard.Player1Location.X
+            PlayerLocation.Y = ThisChessBoard.Player1Location.Y
+        else:
+            PlayerLocation.X = ThisChessBoard.Player2Location.X
+            PlayerLocation.Y = ThisChessBoard.Player2Location.Y
+
+        # region 创建移动Action
+        MoveAction = 2
+        if Player_ToCreate == 1:
+            MoveAction = 3
+
+        row = PlayerLocation.X
+        col = PlayerLocation.Y
+
+        if row >= 2 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 2, col, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row - 2, col))
+
+        if row >= 1 and col >= 1 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 1, col - 1,
+                                                                           MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row - 1, col - 1))
+        if row >= 1 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 1, col, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row - 1, col))
+        if row >= 1 and col <= 5 \
+                and QuoridorRuleEngine.CheckMove(ThisChessBoard, row - 1, col + 1, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row - 1, col + 1))
+
+        if col >= 2 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col - 2, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row, col - 2))
+        if col >= 1 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col - 1, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row, col - 1))
+        if col <= 5 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col + 1, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row, col + 1))
+        if col <= 4 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row, col + 2, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row, col + 2))
+
+        if row <= 5 and col >= 1 \
+                and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 1, col - 1, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row + 1, col - 1))
+        if row <= 5 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 1, col, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row + 1, col))
+        if row <= 5 and col <= 5 \
+                and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 1, col + 1, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row + 1, col))
+
+        if row <= 4 and QuoridorRuleEngine.CheckMove(ThisChessBoard, row + 2, col, MoveAction, False) == "OK":
+            ActionListBuff.append(QuoridorAction(MoveAction, row + 2, col))
+
+        # endregion
+
+        # region 校验生成的ActionList是否合法
+        ActionList = []
+        MoveActionList = []
+        for QA in ActionListBuff:
+            if QA.Action == 2 or QA.Action == 3:  # 移动校验
+                if QuoridorRuleEngine.CheckMove(ThisChessBoard
+                                                , QA.ActionLocation.X, QA.ActionLocation.Y, QA.Action, False) == "OK":
+                    MoveActionList.append(QA)
+            else:
+                ActionList.append(QA)
+
+        MoveScore = []
+        BestMove = MoveActionList[0]
+        for QA in MoveActionList:
+            SaveChessBoard = ChessBoard.SaveChessBoard(ThisChessBoard)
+            Hint = QuoridorRuleEngine.Action(SaveChessBoard, QA.ActionLocation.X, QA.ActionLocation.Y
+                                             , QA.Action, Player_ToCreate)
+            if Hint == "OK":
+                AstarE = LR()
+                disbuff = 0
+                if Player_ToCreate == 0:
+                    disbuff = AstarE.AstarRestart(SaveChessBoard, 0
+                                                  , SaveChessBoard.Player1Location.X, SaveChessBoard.Player1Location.Y)
+                else:
+                    disbuff = AstarE.AstarRestart(SaveChessBoard, 1
+                                                  , SaveChessBoard.Player2Location.X, SaveChessBoard.Player2Location.Y)
+                MoveScore.append(disbuff)
+
+        MinScore = 10000
+        for i in range(len(MoveScore)):
+            if MoveScore[i] < MinScore:
+                MinScore = MoveScore[i]
+                BestMove = MoveActionList[i]
+
+        ActionList.append(BestMove)
+
+        return ActionList
+        # endregion
+

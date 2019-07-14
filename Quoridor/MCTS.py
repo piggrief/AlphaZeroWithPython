@@ -112,7 +112,6 @@ class MonteCartoTreeNode:
             return 0
 
     def SimluationOnce(self, InitChessBoard, JudgePlayer):
-
         # region 暂存挡板数量
         Board1Save = InitChessBoard.NumPlayer1Board
         Board2Save = InitChessBoard.NumPlayer2Board
@@ -237,15 +236,23 @@ class MCTSearch:
 
         NextExpandNode = self.RootNode
 
+        print("一次模拟开始！")
+
         while True:
+            StartSimTime = time.time()
             if self.RootNode.Children != []:
+                SelectStart = time.time()
                 # 选择
                 NextExpandNode = NextExpandNode.Select()
-
+                print("Select操作用时：", end='')
+                print(time.time() - SelectStart)
+                ActionStart = time.time()
                 # region 模拟落子
                 HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
                                                        , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
                                                        , NextExpandNode.NodeAction, NextExpandNode.NodePlayer)
+                print("Action操作用时：", end='')
+                print(time.time() - SelectStart)
 
                 if HintStr != "OK":
                     print("错误提示：")
@@ -261,24 +268,22 @@ class MCTSearch:
             # endregion
             # region 获取legal列表
             QABuff = []
-            # StartTime = time.time()
+            CreateStartTime = time.time()
             QABuff = RE.QuoridorRuleEngine.CreateActionList(SimluationChessBoard
                                                             , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
-            # EndTime = time.time()
-            # print("列表创建计算时间：", end='')
-            # print(EndTime - StartTime)
+
             LegalActionList = []
             for QA in QABuff:
                 LegalActionList.append(QA.Action * 100 + QA.ActionLocation.X * 10 + QA.ActionLocation.Y)
             # endregion
-
+            print("列表创建计算时间：", end='')
+            print(time.time() - CreateStartTime)
             # region 获得P、V数组
             state.append(SimluationChessBoard.ChessBoardState)
-            # StartTime = time.time()
+            PolicyNetStart = time.time()
             action_probs, leaf_value = self.PolicyNet(np.array(state), LegalActionList)
-            # EndTime = time.time()
-            # print("策略价值网络计算时间：", end='')
-            # print(EndTime - StartTime)
+            print("策略价值网络计算时间：", end='')
+            print(time.time() - PolicyNetStart)
             # endregion
             # region 检测是否胜利
             SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
@@ -292,8 +297,15 @@ class MCTSearch:
                 break
             # endregion
 
+            ExpandTime = time.time()
             # 拓展
             NextExpandNode.Expand(action_probs)
+            print("Expand用时：", end='')
+            print(time.time() - ExpandTime)
+
+            Endtime = time.time()
+            print("一次循环用时：", end='')
+            print(Endtime - StartSimTime)
 
         # region 恢复挡板数量
         NowChessBoard.NumPlayer1Board = Board1Save
@@ -307,19 +319,19 @@ class MCTSearch:
         :param temp:
         :return:
         """
-        StartTime = time.time()
+        # StartTime = time.time()
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-            SimStartTime = time.time()
+            # SimStartTime = time.time()
             self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
             SimEndTime = time.time()
-            print("一次模拟时间：", end='')
-            print(SimEndTime - StartTime)
+            # print("一次模拟时间：", end='')
+            # print(SimEndTime - StartTime)
 
-        EndTime = time.time()
-        print("总模拟时间：", end='')
-        print(EndTime - StartTime)
+        # EndTime = time.time()
+        # print("总模拟时间：", end='')
+        # print(EndTime - StartTime)
         # 计算每个动作的概率pi值
         acts = []
         _NList = []
@@ -405,7 +417,7 @@ class MCTSearch:
 
                 if 0 in winners_z:
                     ErrorStr = "winners_z有0元素"
-                    raise Exception(ErrorStr) 
+                    raise Exception(ErrorStr)
 
                 if is_shown:
                     print("游戏结束，获胜玩家：", WinnerPlayer)

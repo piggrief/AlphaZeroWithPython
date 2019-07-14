@@ -359,6 +359,21 @@ class TictactoePolicyValueNet(PolicyValueNet):
         act_probs = zip(legal_ActionList, ResultProbs)
         return act_probs, value
 
+    def policy_value_fn_ReturnAll(self, CurrentState, legal_ActionList=[]):
+        current_state = np.ascontiguousarray(CurrentState.reshape(
+                -1, 4, self.board_width, self.board_width))
+        act_probs, value = self.policy_value(current_state)
+
+        ResultAction = []
+        ResultProbs = []
+        for j in range(act_probs.shape[1]):
+            for k in range(act_probs.shape[2]):
+                ResultProbs.append(act_probs[0, j, k])
+                ResultAction.append(j * 100 + (k // self.board_width) * 10 + k % self.board_width)
+
+        act_probs = zip(ResultAction, ResultProbs)
+        return act_probs, value
+
     def train_step(self, state_batch, mcts_probs, winner_batch, lr):
         winner_batch = np.reshape(winner_batch, (-1, 1))
         loss, entropy, _ = self.session.run(
