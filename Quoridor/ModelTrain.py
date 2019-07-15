@@ -22,7 +22,7 @@ class Train:
                  check_freq=1,
                  play_batch_size=1,
                  game_batch_num=1):
-        self.MCT = MCTSearch(policy_value_net.policy_value_fn, Num_Simulation=n_playout)
+        self.MCT = MCTSearch(policy_value_net.policy_value_fn_ReturnAll, Num_Simulation=n_playout)
         self.policy_value_net = policy_value_net
         self.save_dir = save_dir
 
@@ -40,10 +40,10 @@ class Train:
         self.lr_multiplier = 1.0  # 根据KL调整学习速率
         self.kl_targ = 0.02
 
-    def Collect_SelfPlay_Data_OnceGame(self):
+    def Collect_SelfPlay_Data_OnceGame(self, MCT):
         # print(index, end='')
         print("开始收集数据")
-        winner, play_data = self.MCT.SelfPlay(0, False, temp=0.1)
+        winner, play_data = MCT.SelfPlay(0, True, temp=0.1)
         play_data = list(play_data)[:]
         return play_data
 
@@ -57,16 +57,25 @@ class Train:
         # p.close()
         # p.join()
 
-        # self.pool = multiprocessing.Pool(processes=4)
-        # PlayData = self.pool.map(self.Collect_SelfPlay_Data_OnceGame, index)
+        # for i in range(4):
+        #     self.pool = mp.Pool(processes=4)
+        #     PlayData = self.pool.map(self.Collect_SelfPlay_Data_OnceGame, i)
         # self.pool.close()
         # self.pool.join()
-
-        for i in range(GameNum):
-            self.data_buffer.extend(self.Collect_SelfPlay_Data_OnceGame())
+        p = mp.Pool(4)
+        for i in range(4):
+            MCT = MCTSearch(self.policy_value_net.policy_value_fn_ReturnAll, Num_Simulation=self.n_playout)
+            p.apply_async(self.Collect_SelfPlay_Data_OnceGame, args=(MCT, ))
+        p.close()
+        p.join()
+        # p = mp.Process(target=self.Collect_SelfPlay_Data_OnceGame, args=())
+        # p.start()
+        # p.join()
+        # for i in range(GameNum):
+        #     self.data_buffer.extend(self.f)
 
         EndTime = time.time()
-        print("收集数据用时：")
+        print("收集数据用时：" + str(EndTime - StartTime))
         aaa = 0
 
     def policy_update(self):

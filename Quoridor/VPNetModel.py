@@ -359,19 +359,34 @@ class TictactoePolicyValueNet(PolicyValueNet):
         act_probs = zip(legal_ActionList, ResultProbs)
         return act_probs, value
 
-    def policy_value_fn_ReturnAll(self, CurrentState, legal_ActionList=[]):
+    def policy_value_fn_ReturnAll(self, CurrentState, legal_ActionList=[], IsUseLegalList=False):
+        if IsUseLegalList:
+            legal_action = []
+            legal_location = []
+            for Action in legal_ActionList:
+                legal_action.append((Action // 100) % 10)
+                ActionRow = (Action // 10) % 10
+                ActionCol = Action % 10
+                legal_location.append(ActionRow * self.board_width + ActionCol)
+
         current_state = np.ascontiguousarray(CurrentState.reshape(
                 -1, 4, self.board_width, self.board_width))
         act_probs, value = self.policy_value(current_state)
 
         ResultAction = []
         ResultProbs = []
-        for j in range(act_probs.shape[1]):
-            for k in range(act_probs.shape[2]):
-                ResultProbs.append(act_probs[0, j, k])
-                ResultAction.append(j * 100 + (k // self.board_width) * 10 + k % self.board_width)
+        if IsUseLegalList:
+            for i in range(len(legal_ActionList)):
+                ResultProbs.append(act_probs[0][legal_action[i]][legal_location[i]])
 
-        act_probs = zip(ResultAction, ResultProbs)
+            act_probs = zip(legal_ActionList, ResultProbs)
+        else:
+            for j in range(act_probs.shape[1]):
+                for k in range(act_probs.shape[2]):
+                    ResultProbs.append(act_probs[0, j, k])
+                    ResultAction.append(j * 100 + (k // self.board_width) * 10 + k % self.board_width)
+
+            act_probs = zip(ResultAction, ResultProbs)
         return act_probs, value
 
     def train_step(self, state_batch, mcts_probs, winner_batch, lr):

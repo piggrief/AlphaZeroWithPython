@@ -11,6 +11,7 @@ from Quoridor.MCTS import MCTSearch
 import numpy as np
 import Quoridor.RuleEngine as RE
 import time
+import multiprocessing as mp
 
 
 def DataCollectShow(Data_Collect):
@@ -23,9 +24,14 @@ def DataCollectShow(Data_Collect):
         time.sleep(0.5)
 
 
-def main():
-    act_visits = [[2, 3], [4, 5], [6, 7]]
-    acts, visits = zip(*act_visits)
+def PrintInfo(index):
+    print("第"+str(index)+"个进程开始！")
+    for i in range(200000):
+        sum += 1
+    print("第" + str(index) + "个进程结束！")
+
+
+if __name__ == '__main__':
     PVN = TictactoePolicyValueNet(7)
     # PVN = QuoridorPolicyValueNet(7)
     T1 = Train(PVN)
@@ -42,6 +48,3 @@ def main():
 
     print("训练完成!")
     a = input()
-
-
-main()

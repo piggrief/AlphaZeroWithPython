@@ -43,18 +43,30 @@ class MonteCartoTreeNode:
 
         return UCTBuff
 
-    def Select(self):
+    def Select(self, NowChessBoard):
         """
         Select操作
         :return:选择要去拓展的子节点
         """
-        MTNode = MonteCartoTreeNode(self, 0)
-        MaxQUCT = -100
-        for NodeBuff in self.Children:
-            NodeBuff._UCT = self.CalNodeValue(NodeBuff)
-            if MaxQUCT < NodeBuff._UCT + NodeBuff._Q:
-                MaxQUCT = NodeBuff._UCT + NodeBuff._Q
-                MTNode = NodeBuff
+        while True:
+            MTNode = MonteCartoTreeNode(self, 0)
+            MaxQUCT = -100
+            for NodeBuff in self.Children:
+                NodeBuff._UCT = self.CalNodeValue(NodeBuff)
+                if MaxQUCT < NodeBuff._UCT + NodeBuff._Q:
+                    MaxQUCT = NodeBuff._UCT + NodeBuff._Q
+                    MTNode = NodeBuff
+
+            JudgePlayer = self.Children[0].NodePlayer
+
+            if MTNode.NodeAction == 0 or MTNode.NodeAction == 1:
+                CheckResult = RE.QuoridorRuleEngine.CheckBoard(NowChessBoard, MTNode.NodeAction, JudgePlayer
+                                                               , MTNode.ActionLocation.X, MTNode.ActionLocation.Y)
+                if CheckResult != "OK":
+                    self.Children.remove(MTNode)
+                    continue
+
+            break
 
         return MTNode
 
@@ -243,16 +255,16 @@ class MCTSearch:
             if self.RootNode.Children != []:
                 SelectStart = time.time()
                 # 选择
-                NextExpandNode = NextExpandNode.Select()
-                print("Select操作用时：", end='')
-                print(time.time() - SelectStart)
+                NextExpandNode = NextExpandNode.Select(SimluationChessBoard)
+                #print("Select操作用时：", end='')
+                #print(time.time() - SelectStart)
                 ActionStart = time.time()
                 # region 模拟落子
                 HintStr = RE.QuoridorRuleEngine.Action(SimluationChessBoard
                                                        , NextExpandNode.ActionLocation.X, NextExpandNode.ActionLocation.Y
                                                        , NextExpandNode.NodeAction, NextExpandNode.NodePlayer)
-                print("Action操作用时：", end='')
-                print(time.time() - SelectStart)
+                #print("Action操作用时：", end='')
+                #print(time.time() - SelectStart)
 
                 if HintStr != "OK":
                     print("错误提示：")
@@ -267,24 +279,56 @@ class MCTSearch:
 
             # endregion
             # region 获取legal列表
-            QABuff = []
-            CreateStartTime = time.time()
-            QABuff = RE.QuoridorRuleEngine.CreateActionList(SimluationChessBoard
-                                                            , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
+            if self.RootNode.Children == []:
+                QABuff = []
+                CreateStartTime = time.time()
+                QABuff = RE.QuoridorRuleEngine.CreateActionList(SimluationChessBoard
+                                                                , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
 
-            LegalActionList = []
-            for QA in QABuff:
-                LegalActionList.append(QA.Action * 100 + QA.ActionLocation.X * 10 + QA.ActionLocation.Y)
+                LegalActionList = []
+                for QA in QABuff:
+                    LegalActionList.append(QA.Action * 100 + QA.ActionLocation.X * 10 + QA.ActionLocation.Y)
             # endregion
-            print("列表创建计算时间：", end='')
-            print(time.time() - CreateStartTime)
+            # print("列表创建计算时间：", end='')
+            # print(time.time() - CreateStartTime)
             # region 获得P、V数组
             state.append(SimluationChessBoard.ChessBoardState)
             PolicyNetStart = time.time()
-            action_probs, leaf_value = self.PolicyNet(np.array(state), LegalActionList)
-            print("策略价值网络计算时间：", end='')
-            print(time.time() - PolicyNetStart)
+            if self.RootNode.Children != []:
+                action_probs, leaf_value = self.PolicyNet(np.array(state), [])
+            else:
+                action_probs, leaf_value = self.PolicyNet(np.array(state), LegalActionList, True)
+            #print("策略价值网络计算时间：", end='')
+            #print(time.time() - PolicyNetStart)
             # endregion
+
+            # region 只选路径最短的action
+            if self.RootNode.Children != []:
+                QABuff = []
+                QABuff = RE.QuoridorRuleEngine.CreateMoveActionList(SimluationChessBoard
+                                                                    , MonteCartoTreeNode.ReversePlayer(NextExpandNode.NodePlayer))
+                NewActionList = []
+                NewProbs = []
+                for Action, Prob in action_probs:
+                    if (Action // 100) != 2 and (Action // 100) != 3:
+                        Action_X = (Action // 10) % 10
+                        Action_Y = Action % 10
+                        if (Action // 100) == 0:
+                            if Action_Y == 0:
+                                continue
+                        elif (Action // 100) == 1:
+                            if Action_X == 0:
+                                continue
+                        NewActionList.append(Action)
+                        NewProbs.append(Prob)
+                    elif QABuff[0].ActionLocation.X == (Action // 10) % 10 \
+                            and QABuff[0].ActionLocation.Y == Action % 10 \
+                            and QABuff[0].Action == (Action // 100):
+                        NewActionList.append(Action)
+                        NewProbs.append(Prob)
+                action_probs = zip(NewActionList, NewProbs)
+            # endregion
+
             # region 检测是否胜利
             SuccessHint = RE.QuoridorRuleEngine.CheckGameResult(SimluationChessBoard)
             if SuccessHint != "No Success":
@@ -300,12 +344,12 @@ class MCTSearch:
             ExpandTime = time.time()
             # 拓展
             NextExpandNode.Expand(action_probs)
-            print("Expand用时：", end='')
-            print(time.time() - ExpandTime)
+            #print("Expand用时：", end='')
+            #print(time.time() - ExpandTime)
 
             Endtime = time.time()
-            print("一次循环用时：", end='')
-            print(Endtime - StartSimTime)
+            #print("一次循环用时：", end='')
+            #print(Endtime - StartSimTime)
 
         # region 恢复挡板数量
         NowChessBoard.NumPlayer1Board = Board1Save
@@ -323,11 +367,13 @@ class MCTSearch:
         # 模拟n_Simulation次
         for i in range(self.n_Simulation):
             Sim_ChessBoard = ChessBoard.SaveChessBoard(ChessBoard_Init)
-            # SimStartTime = time.time()
+            SimStartTime = time.time()
+            if Sim_ChessBoard.NumPlayer1Board <= 0 or Sim_ChessBoard.NumPlayer2Board <= 0:
+                BreakPoint = 0
             self.OnceSimulation(Sim_ChessBoard, IsShowCB=False)
             SimEndTime = time.time()
-            # print("一次模拟时间：", end='')
-            # print(SimEndTime - StartTime)
+            print("一次模拟时间：", end='')
+            print(SimEndTime - SimStartTime)
 
         # EndTime = time.time()
         # print("总模拟时间：", end='')
@@ -362,8 +408,20 @@ class MCTSearch:
             move_probs[ActionBuff, LocationBuff] = probs[i]
 
         if self.IsSelfPlay:
-            move = np.random.choice(acts, p=0.75 * probs + 0.25 * np.random.dirichlet(
-                0.3 * np.ones(len(probs))))  # 增加一个Dirichlet Noise来探索
+            while True:
+                move = np.random.choice(acts, p=0.75 * probs + 0.25 * np.random.dirichlet(
+                    0.3 * np.ones(len(probs))))  # 增加一个Dirichlet Noise来探索
+
+                CheckResult = RE.QuoridorRuleEngine.CheckBoard(ChessBoard_Init, move // 100
+                                                               , self.RootNode.Children[0].NodePlayer
+                                                               , (move // 10) % 10, move % 10)
+                if CheckResult != "OK":
+                    for i in range(len(probs)):
+                        if acts[i] == move:
+                            np.delete(acts, i)
+                            np.delete(probs, i)
+                else:
+                    break
             self.RootNode = self.RootNode.update_with_move(self.RootNode, move)
         else:
             move = np.random.choice(acts, p=probs)  # 如果用默认值temp=1e-3，就相当于选择P值最高的动作
@@ -378,7 +436,8 @@ class MCTSearch:
         self.CurrentPlayer = JudgePlayer
         states, mcts_probs, current_players = [], [], []
         CurrentPlayer = 0
-        self.RootNode.NodePlayer = 1
+        self.RootNode.NodePlayer = MonteCartoTreeNode.ReversePlayer(JudgePlayer)
+        StartSelfPlayTime = time.time()
         while True:
             move, move_probs = self.GetPolicyAction(self.InitChessBoard
                                                     , temp=temp, return_prob=True)
@@ -393,6 +452,8 @@ class MCTSearch:
                                                 , (move // 10) % 10, move % 10, (move // 100) % 10
                                                 , CurrentPlayer)
 
+            if Hint != "OK":
+                raise Exception(Hint + str(move))
             if is_shown:
                 ChessBoard.DrawNowChessBoard(self.InitChessBoard)
                 print("NowPlayer：", end='')
@@ -425,3 +486,6 @@ class MCTSearch:
                 return WinnerPlayer, zip(states, mcts_probs, winners_z)
 
             CurrentPlayer = MonteCartoTreeNode.ReversePlayer(CurrentPlayer)
+        print("一次自我对局用时：", end='')
+        print(time.time() - StartSelfPlayTime)
+        BreakPoiont = 0

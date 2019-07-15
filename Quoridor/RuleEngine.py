@@ -54,8 +54,8 @@ class ChessBoard:
         self.ChessBoardAll[6, 3].GridStatus = 2
         self.Player1Location = Point(0, 3)
         self.Player2Location = Point(6, 3)
-        self.NumPlayer1Board = 16
-        self.NumPlayer2Board = 16
+        self.NumPlayer1Board = 16  # 16
+        self.NumPlayer2Board = 16  # 16
         self.ChessBoardState = np.zeros((4, 7, 7))
         self.ChessBoardState[2, 0, 3] = 1
         self.ChessBoardState[3, 6, 3] = 1
