@@ -1,0 +1,6 @@
+���������һ����ʱ��
+	TictactoePolicyValueNet����0.016s
+	QuoridorPolicyValueNet����0.015s
+
+	一次模拟6，6s
+	优化后：

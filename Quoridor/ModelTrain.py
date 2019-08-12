@@ -6,8 +6,11 @@ import time
 import numpy as np
 from Quoridor.MCTS import MCTSearch
 import json
+import copy
 from multiprocessing.dummy import Pool as ThreadPool
 import multiprocessing as mp
+import threading
+RLock = threading.Lock()
 
 
 class Train:
@@ -40,17 +43,18 @@ class Train:
         self.lr_multiplier = 1.0  # 根据KL调整学习速率
         self.kl_targ = 0.02
 
-    def Collect_SelfPlay_Data_OnceGame(self, MCT):
+    def Collect_SelfPlay_Data_OnceGame(self):
         # print(index, end='')
         print("开始收集数据")
-        winner, play_data = MCT.SelfPlay(0, True, temp=0.1)
+        winner, play_data = self.MCT.SelfPlay(0, True, temp=0.1)
         play_data = list(play_data)[:]
-        return play_data
+        # RLock.acquire()
+        self.data_buffer.extend(play_data)
+        # RLock.release()
 
     def Collect_SelfPlay_Data(self, GameNum=1):
         # index = range(GameNum)
         StartTime = time.time()
-
         # jobs = []
         # p = mp.Pool(processes=3)
         # p1 = p.apply_async(self.Collect_SelfPlay_Data_OnceGame, args=(self,))
@@ -62,17 +66,24 @@ class Train:
         #     PlayData = self.pool.map(self.Collect_SelfPlay_Data_OnceGame, i)
         # self.pool.close()
         # self.pool.join()
-        p = mp.Pool(4)
-        for i in range(4):
-            MCT = MCTSearch(self.policy_value_net.policy_value_fn_ReturnAll, Num_Simulation=self.n_playout)
-            p.apply_async(self.Collect_SelfPlay_Data_OnceGame, args=(MCT, ))
-        p.close()
-        p.join()
+        # NowTrainList = []
+        # for i in range(4):
+        #     NowTrain = Train(TrainSet.policy_value_net)
+        #     NowTrainList.append(NowTrain)
+        # p = mp.Pool(4)
+        # for i in range(4):
+        #     MCT = MCTSearch(NowTrainList[i].policy_value_net.policy_value_fn_ReturnAll, Num_Simulation=NowTrainList[i].n_playout)
+        #     p.apply_async(NowTrainList[i].Collect_SelfPlay_Data_OnceGame, args=(MCT, ))
+        #     RLock.acquire()
+        #     TrainSet.data_buffer.extend(NowTrainList[i].data_buffer)
+        #     RLock.release()
+        # p.close()
+        # p.join()
         # p = mp.Process(target=self.Collect_SelfPlay_Data_OnceGame, args=())
         # p.start()
         # p.join()
-        # for i in range(GameNum):
-        #     self.data_buffer.extend(self.f)
+        for i in range(GameNum):
+            self.Collect_SelfPlay_Data_OnceGame()
 
         EndTime = time.time()
         print("收集数据用时：" + str(EndTime - StartTime))

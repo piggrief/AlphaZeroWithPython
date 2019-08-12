@@ -279,26 +279,32 @@ class TictactoePolicyValueNet(PolicyValueNet):
 
         # 定义网络结构
         # 1. 输入
-        self.input_states = tf.placeholder(tf.float32, shape=[None, 4, board_width, board_width], name="input_states")
+        self.input_states = tf.placeholder(tf.float32, shape=[None, 4, board_width, board_width]
+                                           , name="input_states")
         self.input_state = tf.transpose(self.input_states, [0, 2, 3, 1], name="input_state")
         # 2. 卷积层
-        self.conv = tf.layers.conv2d(inputs=self.input_state, filters=32, kernel_size=[3, 3], padding="same",
-                                      data_format="channels_last", activation=tf.nn.relu, name="conv")
+        self.conv = tf.layers.conv2d(inputs=self.input_state, filters=32, kernel_size=[3, 3]
+                                     , padding="same"
+                                     , data_format="channels_last", activation=tf.nn.relu, name="conv")
         # 3. P数组输出
-        self.action_conv = tf.layers.conv2d(inputs=self.conv, filters=4, kernel_size=[1, 1], padding="same",
-                                            data_format="channels_last", activation=tf.nn.relu, name="action_conv")
-        self.action_conv_flat = tf.reshape(self.action_conv, [-1, 4, board_width * board_width], name="action_conv_flat")
+        self.action_conv = tf.layers.conv2d(inputs=self.conv, filters=4
+                                            , kernel_size=[1, 1], padding="same"
+                                            , data_format="channels_last", activation=tf.nn.relu
+                                            , name="action_conv")
+        self.action_conv_flat = tf.reshape(self.action_conv, [-1, 4, board_width * board_width]
+                                           , name="action_conv_flat")
         self.action_fc = tf.layers.dense(inputs=self.action_conv_flat, units=board_width * board_width,
                                          activation=tf.nn.log_softmax, name="action_fc")
-        # 4. v值输出
-        # Y = tf.layers.conv2d(inputs=X, filters=1, kernel_size=[1, 1], padding="same", data_format="channels_last")
-        # Y = tf.layers.batch_normalization(Y, axis=3)
-        # Y = tf.nn.relu(Y)  # ?,7,7,1
-        self.evaluation_conv = tf.layers.conv2d(inputs=self.conv, filters=1, kernel_size=[1, 1], padding="same",
-                                                data_format="channels_last", activation=tf.nn.relu, name="evaluation_conv")
-        self.evaluation_conv_flat = tf.reshape(self.evaluation_conv, [-1, board_width * board_width], name="evaluation_conv_flat")
-        self.evaluation_fc1 = tf.layers.dense(inputs=self.evaluation_conv_flat, units=32, activation=tf.nn.relu, name="evaluation_fc1")
-        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=1, activation=tf.nn.tanh, name="evaluation_fc2")
+        self.evaluation_conv = tf.layers.conv2d(inputs=self.conv, filters=1, kernel_size=[1, 1]
+                                                , padding="same"
+                                                , data_format="channels_last", activation=tf.nn.relu
+                                                , name="evaluation_conv")
+        self.evaluation_conv_flat = tf.reshape(self.evaluation_conv, [-1, board_width * board_width]
+                                               , name="evaluation_conv_flat")
+        self.evaluation_fc1 = tf.layers.dense(inputs=self.evaluation_conv_flat, units=32
+                                              , activation=tf.nn.relu, name="evaluation_fc1")
+        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=1, activation=tf.nn.tanh
+                                              , name="evaluation_fc2")
 
         # 定义损失函数
         # 1. v值损失函数

@@ -3,8 +3,8 @@
 from Quoridor.VPNetModel import TictactoePolicyValueNet
 from Quoridor.VPNetModel import QuoridorPolicyValueNet
 from Quoridor.ModelTrain import Train
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 屏蔽警告
+# import os
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # 屏蔽警告
 import tensorflow as tf
 import Quoridor.MCTS
 from Quoridor.MCTS import MCTSearch
